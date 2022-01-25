@@ -36,7 +36,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _incrementCounter() async {
     final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-    OCRController().processImageWithOCR(pickedFile!.path).then((value) => print(value));
+    List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
   }
 
   @override

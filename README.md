@@ -11,29 +11,27 @@ and the Flutter guide for
 [developing packages and plugins](https://flutter.dev/developing-packages). 
 -->
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+**A Flutter package uses ocrkit for processing its output.**
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+Image texts extracted and processed to return the special data wanted.
+Just pass the image path to the chosen function.
 
 ## Getting started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+add the following code to your podfile
+
+> platform :ios, '10.0'
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+The code below extracts all numbers of an image which have 6 or more digits and removes time and date.
 
 ```dart
-const like = 'sample';
+List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
 ```
 
 ## Additional information
 
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+This package is most used for personal operations

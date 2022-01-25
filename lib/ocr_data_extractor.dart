@@ -9,16 +9,21 @@ class OCRController {
 
   factory OCRController() => _instance;
 
-  //use this
-  Future<List<String>> processImageWithOCR(String path) async {
-    final result = await OCRKitController().processImageFromPathWithoutView(path);
+  final OCRKitController occ = OCRKitController();
+
+  //this function extracts all numbers of an image which have 6 or more digits
+  //removes time and date
+  Future<List<String>> getNumberList(String path) async {
+    final result = await occ.processImageFromPathWithoutView(path);
     if (result.toString().isEmpty) return [];
     Map<String, dynamic> data = jsonDecode(result);
-    List<String> finalResult = await processOutput(data);
+    List<Line>? lines = await initialize(data);
+    List<String> finalResult = await findTags(lines);
     return finalResult;
   }
 
-  Future<List<String>> processOutput(Map<String, dynamic> output) async {
+  //extracts each every word
+  Future<List<Line>?> initialize(Map<String, dynamic> output) async {
     dynamic sentValue = output["values"];
     int orientation = int.parse(output["orientation"].toString());
     // String path = output["path"];
@@ -49,8 +54,7 @@ class OCRController {
       } else {
         lines = obj.lines;
       }
-      List<String> finalResult = await findTags(lines);
-      return finalResult;
+      return lines;
     }
   }
 
