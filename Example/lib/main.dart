@@ -34,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> values = [];
   final ImagePicker _picker = ImagePicker();
 
-  void _incrementCounter() async {
+  void _function() async {
     final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
     List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
   }
@@ -76,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: _function,
         child: const Icon(Icons.ac_unit),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );

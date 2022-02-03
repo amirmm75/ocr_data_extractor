@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   ocrkit: ^0.0.23
+  string_similarity: ^2.0.0
 
 dev_dependencies:
   flutter_test:

@@ -22,6 +22,9 @@ class Object {
 }
 
 class Line {
+  // x and y are the exact opposite of mathematical coordinate
+  //CornerPoint[0]{x=0, y=0}            CornerPoint[1]{x=0, y=1}
+  //CornerPoint[3]{x=1, y=0}            CornerPoint[2]{x=1, y=1}
   String? text;
   List<CornerPoint>? cornerList;
 
@@ -65,3 +68,5 @@ class CornerPoint {
     return data;
   }
 }
+
+enum Strictness { hard, medium }
