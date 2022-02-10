@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:ocr_data_extractor/classes.dart';
 import 'package:ocr_data_extractor/ocr_data_extractor.dart';
 
 void main() {
@@ -34,9 +35,26 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> values = [];
   final ImagePicker _picker = ImagePicker();
 
-  void _function() async {
+  Future<void> _getNumbers() async {
     final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
     List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
+  }
+
+  Future<void> _getNames() async {
+    final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+    print("path is : ${pickedFile!.path}");
+    List<String> names = [
+      'negredo daniel',
+      'roux matilde',
+      'rizzo sophia',
+      'richard charlie',
+      'pellegrino ximena',
+      'pellegrini noah',
+      'morelli daniel',
+      'mancini ava',
+      'morel mariana'
+    ];
+    dynamic passengers = await OCRController().getNamesList(pickedFile.path, names);
   }
 
   @override
@@ -76,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _function,
+        onPressed: _getNames,
         child: const Icon(Icons.ac_unit),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );

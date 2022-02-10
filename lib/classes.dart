@@ -22,9 +22,9 @@ class Object {
 }
 
 class Line {
-  // x and y are the exact opposite of mathematical coordinate
-  //CornerPoint[0]{x=0, y=0}            CornerPoint[1]{x=0, y=1}
-  //CornerPoint[3]{x=1, y=0}            CornerPoint[2]{x=1, y=1}
+  // x and y are different from mathematical coordinates. they are the exact opposite! Check the example below
+  //CornerPoint[0]{x=0, y=1}            CornerPoint[1]{x=0, y=0}
+  //CornerPoint[3]{x=1, y=1}            CornerPoint[2]{x=1, y=0}
   String? text;
   List<CornerPoint>? cornerList;
 
@@ -70,3 +70,40 @@ class CornerPoint {
 }
 
 enum Strictness { hard, medium }
+
+class PassengerList {
+  PassengerList({required this.passengerList});
+
+  List<OCRPassenger> passengerList;
+
+  Map<String, dynamic> toJson() => {
+        "PassengerList": List<dynamic>.from(passengerList.map((x) => x.toJson())),
+      };
+}
+
+class OCRPassenger {
+  String name;
+  String seat;
+  String seq;
+  String bag;
+
+  // String id;
+  // String type;
+  // String ci;
+  // String status;
+  // String agent;
+
+  OCRPassenger({required this.name, this.seat = '', this.seq = '', this.bag = ''});
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['FirstName'] = name.split(" ").first;
+    data['LastName'] = name.split(" ").last;
+    data['FullName'] = name;
+    data['Seat'] = seat;
+    data['Seq'] = seq;
+    data['Weight'] = bag.isNotEmpty ? bag.split("/")[1] : '';
+    data['Count'] = bag.isNotEmpty ? bag.split("/")[0] : '';
+    return data;
+  }
+}
