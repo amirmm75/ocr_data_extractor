@@ -206,8 +206,13 @@ class OCRController {
   //probably the most accurate algorithm for sorting lines
   //the length of space between words of a line is 4 and it's changeable!
   initSort(List<Line>? allLines, {int spaceBetweenWordsCount = 4, bool isHorizontal = true}) async {
-    isHorizontal ? isSortComplete : isSortCompleteVertical = false;
-    isHorizontal ? sortedResult : sortedResultVertical = '';
+    if (isHorizontal) {
+      isSortComplete = false;
+      sortedResult = '';
+    } else {
+      isSortCompleteVertical = false;
+      sortedResultVertical = '';
+    }
     spaceBetweenWords = '';
     for (int i = 0; i < spaceBetweenWordsCount; i++) {
       spaceBetweenWords = spaceBetweenWords + ' ';
@@ -234,7 +239,7 @@ class OCRController {
   sortLines(List<Line>? lines, String spaceBetweenWords, bool isHorizontal) {
     //add entireLines
     if (lines == null || lines.isEmpty) {
-      isHorizontal ? isSortComplete : isSortCompleteVertical = true;
+      isHorizontal ? isSortComplete = true : isSortCompleteVertical = true;
     } else {
       List<Line> sameLines = [];
       Line firstLine = isHorizontal ? leastXFinder(lines) : maxYFinder(lines);
@@ -344,8 +349,8 @@ class OCRController {
   //find passengers
   Future<List<Map<String, dynamic>>> findPassengers(
       String horizontalSort, String verticalSort, List<String> inputNames) async {
-    print(horizontalSort);
-    print("**************************** ************************************** ********************");
+    // print(horizontalSort);
+    // print("**************************** ************************************** ********************");
     // print(verticalSort);
     // print("**************************** ************************************** ********************");
     List<String> results = <String>[];
@@ -408,7 +413,7 @@ class OCRController {
     // }
     List<Map<String, dynamic>> passengers = [];
     for (String n in results) {
-      print(n);
+      // print(n);
       String fullName = '';
       String seat = '';
       String seq = '';
@@ -435,8 +440,8 @@ class OCRController {
       OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
       if (seat.isNotEmpty) passengers.add(p.toJson());
     }
-    print("**************************** **************************************");
-    print(passengers);
+    // print("**************************** **************************************");
+    // print(passengers);
     //we return processed output here;
     return passengers;
   }

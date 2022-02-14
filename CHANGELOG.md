@@ -1,3 +1,7 @@
+## 0.0.6
+
+* A major bug fix.
+
 ## 0.0.5
 
 * Algorithms accuracy improvement and bug fixes.
