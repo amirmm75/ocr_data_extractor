@@ -28,17 +28,17 @@ class OCRController {
   //extracts last names next to their first names and removes possible icon read like 'i'
   //if inputNames is empty the function finds the names itself with a lot of problems and needs verticalSort
   //if inputNames is not empty, the first and last names found in this list will be returned.
-  //valid item in the inputNames list: "amir mehdizadeh"
-  Future<Map<String, dynamic>> getNamesList(String path, List<String> inputNames) async {
+  //valid item in the inputNames list: " amir mehdizadeh ". don't forget the space!
+  Future<List<Map<String, dynamic>>> getNamesList(String path, List<String> inputNames) async {
     final result = await occ.processImageFromPathWithoutView(path);
-    if (result.toString().isEmpty) return {};
+    if (result.toString().isEmpty) return [];
     Map<String, dynamic> data = jsonDecode(result);
     List<Line>? lines = await initialize(data,
         removeFromTopWords: [" seat ", " type ", " name "], removeFromTopWords2: [" date:", " gate:"]);
     List<Line>? lines2 = [...lines!];
     String horizontalSort = await initSort(lines, spaceBetweenWordsCount: 1);
     String verticalSort = await initSort(lines2, spaceBetweenWordsCount: 1, isHorizontal: false);
-    Map<String, dynamic> finalResult = await findPassengers(horizontalSort, verticalSort, inputNames);
+    List<Map<String, dynamic>> finalResult = await findPassengers(horizontalSort, verticalSort, inputNames);
     return finalResult;
   }
 
@@ -342,10 +342,10 @@ class OCRController {
   }
 
   //find passengers
-  Future<Map<String, dynamic>> findPassengers(
+  Future<List<Map<String, dynamic>>> findPassengers(
       String horizontalSort, String verticalSort, List<String> inputNames) async {
-    // print(horizontalSort);
-    // print("**************************** ************************************** ********************");
+    print(horizontalSort);
+    print("**************************** ************************************** ********************");
     // print(verticalSort);
     // print("**************************** ************************************** ********************");
     List<String> results = <String>[];
@@ -362,6 +362,9 @@ class OCRController {
               s.startsWith("↑ ") ||
               s.startsWith("† ") ||
               s.startsWith("İ ") ||
+              s.startsWith("é ") ||
+              s.startsWith("o ") ||
+              s.startsWith("d ") ||
               s.startsWith("+ ")) s = s.substring(2).trim();
           List<String> items = s.split(spaceBetweenWords);
           searchingNames.add(items[0] + ' ' + items[1]);
@@ -373,11 +376,11 @@ class OCRController {
     }
     //this needs work
     //without inputNames no item will add
-    if (inputNames.isEmpty) return {};
+    if (inputNames.isEmpty) return [];
     //searching among input names
     for (String n in inputNames) {
       BestMatch bestMatch = n.toLowerCase().bestMatch(searchingNames);
-      if ((bestMatch.bestMatch.rating ?? 0) > 0.8) {
+      if ((bestMatch.bestMatch.rating ?? 0) > 0.85) {
         String rawName = bestMatch.bestMatch.target ?? '';
         int index = searchingNames.indexOf(rawName);
         String s = searchingItems[index].replaceFirst(
@@ -403,31 +406,39 @@ class OCRController {
     //     break;
     //   }
     // }
-    List<OCRPassenger> passengers = [];
+    List<Map<String, dynamic>> passengers = [];
     for (String n in results) {
+      print(n);
       String fullName = '';
       String seat = '';
       String seq = '';
       String bag = '';
       List<String> items = n.split(spaceBetweenWords);
       for (int i = 0; i < items.length; i++) {
-        if (isPassengerSeat(items[i])) {
-          seat = items[i].trim();
+        String nextItem = (i == items.length - 1) ? '' : items[i + 1];
+        List<dynamic> isSeatFunction = isPassengerSeat(items[i], nextItem);
+        if (isSeatFunction[0]) {
+          seat = isSeatFunction[1];
           seq = items.sublist(i + 1).firstWhere((e) => isPassengerSequence(e), orElse: () => '');
+          if (i < items.length - 2 &&
+              seq.length == 1 &&
+              seq == items[i + 1] &&
+              isPassengerSequence(items[i + 2])) seq = items[i + 2];
           break;
         } else if (isAlpha(items[i]) && i < 3) {
-          fullName = items[i] + ' ';
+          fullName = fullName + items[i] + ' ';
         }
       }
-      bag = items.firstWhere((s) => isPassengerBag(s), orElse: () => '');
+      bag = items.firstWhere((s) => isPassengerBag(s), orElse: () => '').replaceAll('o', '0');
       fullName = fullName.trim();
+      seq = seq.trim();
       OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
-      if (seat.isNotEmpty) passengers.add(p);
+      if (seat.isNotEmpty) passengers.add(p.toJson());
     }
-    //we return processed output here
-    PassengerList finalResult = PassengerList(passengerList: passengers);
-    print(finalResult.toJson());
-    return finalResult.toJson();
+    print("**************************** **************************************");
+    print(passengers);
+    //we return processed output here;
+    return passengers;
   }
 
   /// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
@@ -436,20 +447,33 @@ class OCRController {
 
   //format: ["1B", "1A", "2A", "12A", "299C"];
   // contains a number less than 300 and an alpha letter (a-zA-Z)
-  isPassengerSeat(String s) {
+  isPassengerSeat(String s, String nextItem) {
+    bool b = false;
     s = s.trim();
-    return (s.length > 1 &&
+    //this layer handles little mistakes!
+    if (nextItem != '' && isNumeric(nextItem)) {
+      if (s.length == 3) {
+        s = s[0] +
+            s[1] +
+            (s[2].replaceAll('8', 'b').replaceAll("0", "o").replaceAll('2', 'z').replaceAll("9", "g"));
+      }
+      if (s.length > 2 && isAlpha(s[s.length - 2])) s = s.substring(0, s.length - 1);
+    }
+    //this is the main check!
+    if (s.length > 1 &&
         s.length < 5 &&
         isNumeric(s.substring(0, s.length - 1)) &&
-        isAlpha(s.substring(s.length - 1, s.length)));
+        isAlpha(s.substring(s.length - 1, s.length))) b = true;
+    return [b, s];
   }
 
   //format: ["101", "102", "103"]
-  //it's a number up to 300
+  //it's a number up to 1000
   isPassengerSequence(String s) {
-    if (isNumeric(s)) {
+    s = s.trim();
+    if (isNumeric(s) && s.length < 4) {
       int i = int.parse(s);
-      if (i <= 300) return true;
+      if (i <= 1000) return true;
     }
     return false;
   }

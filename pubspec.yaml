@@ -1,6 +1,6 @@
 name: ocr_data_extractor
 description: A Flutter package uses ocrkit for processing output.
-version: 0.0.3
+version: 0.0.5
 homepage: https://github.com/amirmm75/ocr_data_extractor
 
 environment:
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ocrkit: ^0.0.23
+  ocrkit: ^0.0.25
   string_similarity: ^2.0.0
   string_validator: ^0.3.0
 

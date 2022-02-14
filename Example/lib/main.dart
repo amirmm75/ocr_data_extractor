@@ -52,7 +52,25 @@ class _MyHomePageState extends State<MyHomePage> {
       'pellegrini noah',
       'morelli daniel',
       'mancini ava',
-      'morel mariana'
+      'morel mariana',
+      'alves noah',
+      'amato rosalie',
+      'banderas lilian',
+      'bianchi elijah'
+    ];
+    List<String> names2 = [
+      'BURALE AHMEDMOHAMED',
+      'AHMED CUDONHAJI',
+      'ADAN XALIMOIBRAHIM',
+      'BARKHAD AXLAAMYASIN',
+      'ABDULLA OMARMOHAMED',
+      'CABDILAHI SAWDAKALI',
+      'DALMAR JIBRILDAHIR',
+      'HABARWA RAGEKASE',
+      'HASAN ABDIRAHMANMOHAMED',
+      'HASAN KADIJAIBRAHIM',
+      'HASAN HUSENSAI',
+      'HERSI ISMAILMOHAMED',
     ];
     dynamic passengers = await OCRController().getNamesList(pickedFile.path, names);
   }

@@ -97,13 +97,20 @@ class OCRPassenger {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
-    data['FirstName'] = name.split(" ").first;
-    data['LastName'] = name.split(" ").last;
-    data['FullName'] = name;
-    data['Seat'] = seat;
+    data['FirstName'] = name.split(" ").first.toTitleCase();
+    data['LastName'] = name.split(" ").last.toTitleCase();
+    data['FullName'] = name.toTitleCase();
+    data['Seat'] = seat.toUpperCase();
     data['Seq'] = seq;
     data['Weight'] = bag.isNotEmpty ? bag.split("/")[1] : '';
     data['Count'] = bag.isNotEmpty ? bag.split("/")[0] : '';
     return data;
   }
+}
+
+extension StringCasingExtension on String {
+  String toCapitalized() => length > 0 ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
+
+  String toTitleCase() =>
+      replaceAll(RegExp(' +'), ' ').split(' ').map((str) => str.toCapitalized()).join(' ');
 }

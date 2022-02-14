@@ -32,6 +32,14 @@ The code below extracts all numbers of an image which have 6 or more digits and 
 List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
 ```
 
+
+The code below extracts all names of an image in a flight list and extracts details of it.
+Takes a List<String> names and uses it for extraction.
+
+```dart
+dynamic passengers = await OCRController().getNamesList(pickedFile.path, names);
+```
+
 ## Additional information
 
 This package is most used for personal operations
