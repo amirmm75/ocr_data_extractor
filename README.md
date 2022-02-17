@@ -35,9 +35,11 @@ List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
 
 The code below extracts all names of an image in a flight list and extracts details of it.
 Takes a List<String> names and uses it for extraction.
+Gets an int to set the strictness as the third input.
+Strictness can be hard(1) or medium(0). the first is more accurate and second one is more sensitive.
 
 ```dart
-dynamic passengers = await OCRController().getNamesList(pickedFile.path, names);
+dynamic passengers = await OCRController().getNamesList(pickedFile.path, names, 0);
 ```
 
 ## Additional information

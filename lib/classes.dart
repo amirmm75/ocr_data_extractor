@@ -77,7 +77,8 @@ class PassengerList {
   List<OCRPassenger> passengerList;
 
   Map<String, dynamic> toJson() => {
-        "PassengerList": List<dynamic>.from(passengerList.map((x) => x.toJson())),
+        "PassengerList":
+            List<dynamic>.from(passengerList.map((x) => x.toJson())),
       };
 }
 
@@ -93,7 +94,8 @@ class OCRPassenger {
   // String status;
   // String agent;
 
-  OCRPassenger({required this.name, this.seat = '', this.seq = '', this.bag = ''});
+  OCRPassenger(
+      {required this.name, this.seat = '', this.seq = '', this.bag = ''});
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
@@ -109,8 +111,11 @@ class OCRPassenger {
 }
 
 extension StringCasingExtension on String {
-  String toCapitalized() => length > 0 ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
+  String toCapitalized() =>
+      length > 0 ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
 
-  String toTitleCase() =>
-      replaceAll(RegExp(' +'), ' ').split(' ').map((str) => str.toCapitalized()).join(' ');
+  String toTitleCase() => replaceAll(RegExp(' +'), ' ')
+      .split(' ')
+      .map((str) => str.toCapitalized())
+      .join(' ');
 }

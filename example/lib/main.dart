@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:ocr_data_extractor/classes.dart';
 import 'package:ocr_data_extractor/ocr_data_extractor.dart';
 
 void main() {
@@ -36,12 +35,15 @@ class _MyHomePageState extends State<MyHomePage> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _getNumbers() async {
-    final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-    List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
+    final pickedFile =
+        await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+    List<String> numbers =
+        await OCRController().getNumberList(pickedFile!.path);
   }
 
   Future<void> _getNames() async {
-    final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+    final pickedFile =
+        await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
     print("path is : ${pickedFile!.path}");
     List<String> names = [
       'negredo daniel',
@@ -72,7 +74,8 @@ class _MyHomePageState extends State<MyHomePage> {
       'HASAN HUSENSAI',
       'HERSI ISMAILMOHAMED',
     ];
-    dynamic passengers = await OCRController().getNamesList(pickedFile.path, names);
+    dynamic passengers =
+        await OCRController().getNamesList(pickedFile.path, names, 1);
   }
 
   @override
@@ -108,7 +111,10 @@ class _MyHomePageState extends State<MyHomePage> {
           // axis because Columns are vertical (the cross axis would be
           // horizontal).
 
-          children: values.map((e) => SizedBox(height: 50, width: Get.width, child: Text(e))).toList(),
+          children: values
+              .map(
+                  (e) => SizedBox(height: 50, width: Get.width, child: Text(e)))
+              .toList(),
         ),
       ),
       floatingActionButton: FloatingActionButton(

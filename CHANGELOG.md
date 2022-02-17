@@ -1,3 +1,7 @@
+## 0.0.7
+
+* Changes in getNamesList function.
+
 ## 0.0.6
 
 * A major bug fix.
