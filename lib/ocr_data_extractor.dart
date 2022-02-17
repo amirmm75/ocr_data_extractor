@@ -31,7 +31,7 @@ class OCRController {
   ///if inputNames is not empty, the first and last names found in this list will be returned.
   ///valid item in the inputNames list: "amir mehdizadeh".
   ///we use remove from top to removes extra words! example: " seat ", don't forget the space!
-  ///Strictness = 0 : medium & Strictness = 1 : hard
+  ///Strictness = 0 : medium & Strictness = 1 : hard & alternative hard = 2
   Future<List<Map<String, dynamic>>> getNamesList(
       String path, List<String> inputNames, int strictness) async {
     final result = await occ.processImageFromPathWithoutView(path);
@@ -298,7 +298,17 @@ class OCRController {
       isInSameLines = false;
     } else {
       newLine = isHorizontal ? leastXFinder(allLines) : maxYFinder(allLines);
-      for (var element in sameLines) {
+      if (strictness < 2) {
+        for (var element in sameLines) {
+          if ((isHorizontal
+              ? !isInTheSameLine(newLine, element,
+                  strictness == 0 ? Strictness.medium : Strictness.hard)
+              : !isInTheSameColumn(newLine, element, Strictness.medium))) {
+            isInSameLines = false;
+          }
+        }
+      } else {
+        Line element = sameLines.last;
         if ((isHorizontal
             ? !isInTheSameLine(newLine, element,
                 strictness == 0 ? Strictness.medium : Strictness.hard)

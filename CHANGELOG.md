@@ -1,3 +1,7 @@
+## 0.0.8
+
+* Added a new strictness.
+
 ## 0.0.7
 
 * Changes in getNamesList function.
