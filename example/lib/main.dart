@@ -75,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
       'HERSI ISMAILMOHAMED',
     ];
     dynamic passengers =
-        await OCRController().getNamesList(pickedFile.path, names, 1);
+        await OCRController().getNamesList(pickedFile.path, names, 2);
   }
 
   @override

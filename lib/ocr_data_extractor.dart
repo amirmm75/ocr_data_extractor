@@ -43,10 +43,8 @@ class OCRController {
     List<Line>? lines2 = [...lines!];
     String horizontalSort = await initSort(lines,
         spaceBetweenWordsCount: 1, strictness: strictness);
-    String verticalSort =
-        await initSort(lines2, spaceBetweenWordsCount: 1, isHorizontal: false);
     List<Map<String, dynamic>> finalResult =
-        await findPassengers(horizontalSort, verticalSort, inputNames);
+        await findPassengers(horizontalSort, lines2, inputNames);
     return finalResult;
   }
 
@@ -259,6 +257,7 @@ class OCRController {
         : sortedResultVertical; //the data is ready to use!
   }
 
+  ///this is a check that ensures the sort is ended!
   Future waitWhile(bool Function() test,
       [Duration pollInterval = Duration.zero]) {
     var completer = Completer();
@@ -274,6 +273,7 @@ class OCRController {
     return completer.future;
   }
 
+  ///sorts using recursive! Ends the sort at the end.
   sortLines(List<Line>? lines, String spaceBetweenWords, bool isHorizontal,
       int strictness) {
     //add entireLines
@@ -281,7 +281,9 @@ class OCRController {
       isHorizontal ? isSortComplete = true : isSortCompleteVertical = true;
     } else {
       List<Line> sameLines = [];
-      Line firstLine = isHorizontal ? leastXFinder(lines) : maxYFinder(lines);
+      Line firstLine = isHorizontal
+          ? leastXFinder(lines, useMiddle: true)
+          : maxYFinder(lines, useMiddle: true);
       sameLines.add(firstLine);
       lines.removeWhere((element) => element == firstLine);
       findSameLines(
@@ -289,6 +291,7 @@ class OCRController {
     }
   }
 
+  ///this finds same line words of the found words.
   findSameLines(List<Line> allLines, List<Line> sameLines,
       String spaceBetweenWords, bool isHorizontal, int strictness) {
     Line newLine = Line();
@@ -297,7 +300,9 @@ class OCRController {
     if (allLines.isEmpty) {
       isInSameLines = false;
     } else {
-      newLine = isHorizontal ? leastXFinder(allLines) : maxYFinder(allLines);
+      newLine = isHorizontal
+          ? leastXFinder(allLines, useMiddle: true)
+          : maxYFinder(allLines, useMiddle: true);
       if (strictness < 2) {
         for (var element in sameLines) {
           if ((isHorizontal
@@ -310,9 +315,8 @@ class OCRController {
       } else {
         Line element = sameLines.last;
         if ((isHorizontal
-            ? !isInTheSameLine(newLine, element,
-                strictness == 0 ? Strictness.medium : Strictness.hard)
-            : !isInTheSameColumn(newLine, element, Strictness.medium))) {
+            ? !isInTheSameLine(newLine, element, Strictness.hard)
+            : !isInTheSameColumn(newLine, element, Strictness.hard))) {
           isInSameLines = false;
         }
       }
@@ -347,27 +351,45 @@ class OCRController {
     }
   }
 
-  leastXFinder(List<Line> lines) {
-    Line firstLine = lines.reduce((value, element) =>
-        value.cornerList![0].x < element.cornerList![0].x ? value : element);
+  ///can find leastX based on the middle height
+  leastXFinder(List<Line> lines, {bool useMiddle = false}) {
+    Line firstLine = lines.reduce((value, element) {
+      var i1 = !useMiddle
+          ? value.cornerList![0].x
+          : (value.cornerList![0].x + value.cornerList![2].x) / 2;
+      var i2 = !useMiddle
+          ? element.cornerList![0].x
+          : (element.cornerList![0].x + element.cornerList![2].x) / 2;
+      return i1 < i2 ? value : element;
+    });
     return firstLine;
   }
 
+  ///based on the left part of the word
   maxXFinder(List<Line> lines) {
     Line firstLine = lines.reduce((value, element) =>
         value.cornerList![0].x > element.cornerList![0].x ? value : element);
     return firstLine;
   }
 
+  ///based on the left part of the word
   leastYFinder(List<Line> lines) {
     Line firstLine = lines.reduce((value, element) =>
         value.cornerList![0].y < element.cornerList![0].y ? value : element);
     return firstLine;
   }
 
-  maxYFinder(List<Line> lines) {
-    Line firstLine = lines.reduce((value, element) =>
-        value.cornerList![0].y > element.cornerList![0].y ? value : element);
+  ///can find maxY based on the middle width
+  maxYFinder(List<Line> lines, {bool useMiddle = false}) {
+    Line firstLine = lines.reduce((value, element) {
+      var i1 = !useMiddle
+          ? value.cornerList![0].y
+          : (value.cornerList![0].y + value.cornerList![2].y) / 2;
+      var i2 = !useMiddle
+          ? element.cornerList![0].y
+          : (element.cornerList![0].y + element.cornerList![2].y) / 2;
+      return i1 > i2 ? value : element;
+    });
     return firstLine;
   }
 
@@ -406,11 +428,10 @@ class OCRController {
 
   ///find passengers
   Future<List<Map<String, dynamic>>> findPassengers(String horizontalSort,
-      String verticalSort, List<String> inputNames) async {
+      List<Line> allLines, List<String> inputNames) async {
     // print(horizontalSort);
-    // print("**************************** ************************************** ********************");
-    // print(verticalSort);
-    // print("**************************** ************************************** ********************");
+    // print(
+    //     "**************************** ************************************** ********************");
     List<String> results = <String>[];
     List<String> searchingNames = <String>[];
     List<String> searchingItems = <String>[];
@@ -437,22 +458,30 @@ class OCRController {
         }
       }
     }
-    //this needs work
+    //now we extract vertical sort! but first we need to remove some lines...
+    // allLines.removeWhere(
+    //     (l) => !searchingItems.join(" ").contains(l.text!.toLowerCase()));
+    // String verticalSort = await initSort(allLines,
+    //     spaceBetweenWordsCount: 1, isHorizontal: false, strictness: 2);
+    // print(
+    //     "**************************** ************************************** ********************");
+    // print(verticalSort.replaceAll("\n", "\n\n"));
+    // print(
+    //     "**************************** ************************************** ********************");
     //without inputNames no item will add
     if (inputNames.isEmpty) return [];
     //searching among input names
-    for (String n in inputNames) {
-      BestMatch bestMatch = n.toLowerCase().bestMatch(searchingNames);
+    inputNames = inputNames.map((e) => e = e.toLowerCase()).toList();
+    for (String n in searchingNames) {
+      BestMatch bestMatch = n.bestMatch(inputNames);
       if ((bestMatch.bestMatch.rating ?? 0) > 0.85) {
-        String rawName = bestMatch.bestMatch.target ?? '';
-        int index = searchingNames.indexOf(rawName);
+        int index = searchingNames.indexOf(n);
         String s = searchingItems[index].replaceFirst(
-            rawName.replaceFirst(" ", spaceBetweenWords),
-            n.replaceFirst(" ", spaceBetweenWords));
+            n.replaceFirst(" ", spaceBetweenWords),
+            bestMatch.bestMatch.target!.replaceFirst(" ", spaceBetweenWords));
         results.add(s);
       }
     }
-    //we don't need it yet.
     // //values extracted in results... now we use vertical sort to extract the values of it.
     // List<String> verticalLines = verticalSort.toLowerCase().split("\n");
     // int seatIndex;

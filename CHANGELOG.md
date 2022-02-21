@@ -1,3 +1,7 @@
+## 0.0.9
+
+* Improved sorting.
+
 ## 0.0.8
 
 * Added a new strictness.
