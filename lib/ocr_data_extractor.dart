@@ -38,13 +38,10 @@ class OCRController {
     if (result.toString().isEmpty) return [];
     Map<String, dynamic> data = jsonDecode(result);
     List<Line>? lines = await initialize(data,
-        removeFromTopWords: [" seat ", " type ", " name "],
-        removeFromTopWords2: [" date:", " gate:"]);
+        removeFromTopWords: [" seat ", " type ", " name "], removeFromTopWords2: [" date:", " gate:"]);
     List<Line>? lines2 = [...lines!];
-    String horizontalSort = await initSort(lines,
-        spaceBetweenWordsCount: 1, strictness: strictness);
-    List<Map<String, dynamic>> finalResult =
-        await findPassengers(horizontalSort, lines2, inputNames);
+    String horizontalSort = await initSort(lines, spaceBetweenWordsCount: 1, strictness: strictness);
+    List<Map<String, dynamic>> finalResult = await findPassengers(horizontalSort, lines2, inputNames);
     return finalResult;
   }
 
@@ -59,6 +56,16 @@ class OCRController {
     return finalResult;
   }
 
+  ///this function extracts list of data of passengers of a brs flight table.
+  Future<List<Map<String, dynamic>>> getPassengerList(String path, List<String> inputNames) async {
+    final result = await occ.processImageFromPathWithoutView(path);
+    if (result.toString().isEmpty) return [];
+    Map<String, dynamic> data = jsonDecode(result);
+    List<Line>? lines = await initialize(data);
+    List<Map<String, dynamic>> finalResult = await extractPassengersData(lines ?? [], inputNames);
+    return finalResult;
+  }
+
   ///***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
   ///***** ***** ***** ***** ***** [INITIAL_AND_USEFUL_FUNCTIONS] ***** ***** ***** *****
   ///***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
@@ -68,8 +75,7 @@ class OCRController {
   /// highest and removes the upper words! removeFromTopWords2 removes the words themselves too.
   ///example of a valid list: [" name ", " seat ", " type "]. don't forget the space!
   Future<List<Line>?> initialize(Map<String, dynamic> output,
-      {List<String> removeFromTopWords = const [],
-      List<String> removeFromTopWords2 = const []}) async {
+      {List<String> removeFromTopWords = const [], List<String> removeFromTopWords2 = const []}) async {
     dynamic sentValue = output["values"];
     int orientation = int.parse(output["orientation"].toString());
     // String path = output["path"];
@@ -82,27 +88,17 @@ class OCRController {
       Object obj = Object.fromJson(data);
       List<Line>? lines = [];
       if (orientation == 0) {
-        Line maxXLine = obj.lines!.reduce((value, element) =>
-            value.cornerList![2].x > element.cornerList![2].x
-                ? value
-                : element);
+        Line maxXLine = obj.lines!
+            .reduce((value, element) => value.cornerList![2].x > element.cornerList![2].x ? value : element);
         var maxX = maxXLine.cornerList![2].x;
         for (var element in obj.lines!) {
           Line line = Line(
             text: element.text,
             cornerList: [
-              CornerPoint(
-                  x: element.cornerList![0].y,
-                  y: maxX - element.cornerList![0].x),
-              CornerPoint(
-                  x: element.cornerList![1].y,
-                  y: maxX - element.cornerList![1].x),
-              CornerPoint(
-                  x: element.cornerList![2].y,
-                  y: maxX - element.cornerList![2].x),
-              CornerPoint(
-                  x: element.cornerList![3].y,
-                  y: maxX - element.cornerList![3].x)
+              CornerPoint(x: element.cornerList![0].y, y: maxX - element.cornerList![0].x),
+              CornerPoint(x: element.cornerList![1].y, y: maxX - element.cornerList![1].x),
+              CornerPoint(x: element.cornerList![2].y, y: maxX - element.cornerList![2].x),
+              CornerPoint(x: element.cornerList![3].y, y: maxX - element.cornerList![3].x)
             ],
           );
           lines.add(line);
@@ -143,8 +139,7 @@ class OCRController {
 
   ///takes a String (line) which is a line and contains a list of Strings joined with space and each one of
   ///them much validate. if most of them returned true then the function must return true
-  bool validateFeatureInLine(
-      String line, double percent, bool Function(String) validate) {
+  bool validateFeatureInLine(String line, double percent, bool Function(String) validate) {
     int truth = 0;
     int all = 0;
     List<String> elements = line.trim().split(' ');
@@ -171,21 +166,17 @@ class OCRController {
           i2 < l1.cornerList![0].x ||
           i2 > l1.cornerList![2].x) isInSameLines = false;
     } else if (l1.cornerList![0].x >
-            l2.cornerList![2].x -
-                10 || //strictness == Strictness.medium, more sensitive
+            l2.cornerList![2].x - 10 || //strictness == Strictness.medium, more sensitive
         l1.cornerList![2].x < l2.cornerList![0].x + 10) {
       //this is the first and the most important layer of filter
       isInSameLines = false;
     }
-    if (l1.cornerList![0].y < l2.cornerList![2].y &&
-        l1.cornerList![2].y > l2.cornerList![0].y) {
+    if (l1.cornerList![0].y < l2.cornerList![2].y && l1.cornerList![2].y > l2.cornerList![0].y) {
       //if they have any horizontal sharing in space they must not be in the same line
       isInSameLines = false;
     }
-    if ((l1.cornerList![2].x - l1.cornerList![0].x) >
-            3 * (l2.cornerList![2].x - l2.cornerList![0].x) ||
-        (l2.cornerList![2].x - l2.cornerList![0].x) >
-            3 * (l1.cornerList![2].x - l1.cornerList![0].x)) {
+    if ((l1.cornerList![2].x - l1.cornerList![0].x) > 3 * (l2.cornerList![2].x - l2.cornerList![0].x) ||
+        (l2.cornerList![2].x - l2.cornerList![0].x) > 3 * (l1.cornerList![2].x - l1.cornerList![0].x)) {
       //sometimes a really big font is near a small font which doesn't mean they meant to be in the same line
       isInSameLines = false;
     }
@@ -205,22 +196,17 @@ class OCRController {
           i2 < l1.cornerList![2].y) {
         isInSameLines = false;
       }
-    } else if (l1.cornerList![0].y <
-            l2.cornerList![2]
-                .y || //strictness == Strictness.medium, more sensitive
+    } else if (l1.cornerList![0].y < l2.cornerList![2].y || //strictness == Strictness.medium, more sensitive
         l1.cornerList![2].y > l2.cornerList![0].y) {
       //this is the first and the most important layer of filter
       isInSameLines = false;
     }
-    if (l1.cornerList![0].x < l2.cornerList![2].x &&
-        l1.cornerList![2].x > l2.cornerList![0].x) {
+    if (l1.cornerList![0].x < l2.cornerList![2].x && l1.cornerList![2].x > l2.cornerList![0].x) {
       //if they have any vertical sharing in space they must not be in the same line
       isInSameLines = false;
     }
-    if ((l1.cornerList![2].x - l1.cornerList![0].x) >
-            3 * (l2.cornerList![2].x - l2.cornerList![0].x) ||
-        (l2.cornerList![2].x - l2.cornerList![0].x) >
-            3 * (l1.cornerList![2].x - l1.cornerList![0].x)) {
+    if ((l1.cornerList![2].x - l1.cornerList![0].x) > 3 * (l2.cornerList![2].x - l2.cornerList![0].x) ||
+        (l2.cornerList![2].x - l2.cornerList![0].x) > 3 * (l1.cornerList![2].x - l1.cornerList![0].x)) {
       //sometimes a really big font is near a small font which doesn't mean they meant to be in the same line
       isInSameLines = false;
     }
@@ -235,9 +221,7 @@ class OCRController {
   ///probably the most accurate algorithm for sorting lines
   ///the length of space between words of a line is 4 and it's changeable!
   initSort(List<Line>? allLines,
-      {int spaceBetweenWordsCount = 4,
-      bool isHorizontal = true,
-      int strictness = 1}) async {
+      {int spaceBetweenWordsCount = 4, bool isHorizontal = true, int strictness = 1}) async {
     if (isHorizontal) {
       isSortComplete = false;
       sortedResult = '';
@@ -250,16 +234,12 @@ class OCRController {
       spaceBetweenWords = spaceBetweenWords + ' ';
     }
     sortLines(allLines, spaceBetweenWords, isHorizontal, strictness);
-    await waitWhile(
-        () => isHorizontal ? isSortComplete : isSortCompleteVertical);
-    return isHorizontal
-        ? sortedResult
-        : sortedResultVertical; //the data is ready to use!
+    await waitWhile(() => isHorizontal ? isSortComplete : isSortCompleteVertical);
+    return isHorizontal ? sortedResult : sortedResultVertical; //the data is ready to use!
   }
 
   ///this is a check that ensures the sort is ended!
-  Future waitWhile(bool Function() test,
-      [Duration pollInterval = Duration.zero]) {
+  Future waitWhile(bool Function() test, [Duration pollInterval = Duration.zero]) {
     var completer = Completer();
     check() {
       if (test()) {
@@ -274,40 +254,35 @@ class OCRController {
   }
 
   ///sorts using recursive! Ends the sort at the end.
-  sortLines(List<Line>? lines, String spaceBetweenWords, bool isHorizontal,
-      int strictness) {
+  sortLines(List<Line>? lines, String spaceBetweenWords, bool isHorizontal, int strictness) {
     //add entireLines
     if (lines == null || lines.isEmpty) {
       isHorizontal ? isSortComplete = true : isSortCompleteVertical = true;
     } else {
       List<Line> sameLines = [];
-      Line firstLine = isHorizontal
-          ? leastXFinder(lines, useMiddle: true)
-          : maxYFinder(lines, useMiddle: true);
+      Line firstLine =
+          isHorizontal ? leastXFinder(lines, useMiddle: true) : maxYFinder(lines, useMiddle: true);
       sameLines.add(firstLine);
       lines.removeWhere((element) => element == firstLine);
-      findSameLines(
-          lines, sameLines, spaceBetweenWords, isHorizontal, strictness);
+      findSameLines(lines, sameLines, spaceBetweenWords, isHorizontal, strictness);
     }
   }
 
   ///this finds same line words of the found words.
-  findSameLines(List<Line> allLines, List<Line> sameLines,
-      String spaceBetweenWords, bool isHorizontal, int strictness) {
+  findSameLines(List<Line> allLines, List<Line> sameLines, String spaceBetweenWords, bool isHorizontal,
+      int strictness) {
     Line newLine = Line();
     bool isInSameLines = true;
     // is newLine in same lines?
     if (allLines.isEmpty) {
       isInSameLines = false;
     } else {
-      newLine = isHorizontal
-          ? leastXFinder(allLines, useMiddle: true)
-          : maxYFinder(allLines, useMiddle: true);
+      newLine =
+          isHorizontal ? leastXFinder(allLines, useMiddle: true) : maxYFinder(allLines, useMiddle: true);
       if (strictness < 2) {
         for (var element in sameLines) {
           if ((isHorizontal
-              ? !isInTheSameLine(newLine, element,
-                  strictness == 0 ? Strictness.medium : Strictness.hard)
+              ? !isInTheSameLine(newLine, element, strictness == 0 ? Strictness.medium : Strictness.hard)
               : !isInTheSameColumn(newLine, element, Strictness.medium))) {
             isInSameLines = false;
           }
@@ -325,15 +300,13 @@ class OCRController {
     if (isInSameLines) {
       sameLines.add(newLine);
       allLines.removeWhere((element) => element == newLine);
-      findSameLines(
-          allLines, sameLines, spaceBetweenWords, isHorizontal, strictness);
+      findSameLines(allLines, sameLines, spaceBetweenWords, isHorizontal, strictness);
     } else {
       List<Line> sortedLines = [];
       String result = isHorizontal ? sortedResult : sortedResultVertical;
       int lastI = sameLines.length;
       for (int i = 0; i < lastI; i++) {
-        Line max =
-            isHorizontal ? maxYFinder(sameLines) : leastXFinder(sameLines);
+        Line max = isHorizontal ? maxYFinder(sameLines) : leastXFinder(sameLines);
         // Line maxY = maxYFinder(sameLines);
         // Line maxX = maxXFinder(sameLines);
         sortedLines.add(max);
@@ -354,12 +327,9 @@ class OCRController {
   ///can find leastX based on the middle height
   leastXFinder(List<Line> lines, {bool useMiddle = false}) {
     Line firstLine = lines.reduce((value, element) {
-      var i1 = !useMiddle
-          ? value.cornerList![0].x
-          : (value.cornerList![0].x + value.cornerList![2].x) / 2;
-      var i2 = !useMiddle
-          ? element.cornerList![0].x
-          : (element.cornerList![0].x + element.cornerList![2].x) / 2;
+      var i1 = !useMiddle ? value.cornerList![0].x : (value.cornerList![0].x + value.cornerList![2].x) / 2;
+      var i2 =
+          !useMiddle ? element.cornerList![0].x : (element.cornerList![0].x + element.cornerList![2].x) / 2;
       return i1 < i2 ? value : element;
     });
     return firstLine;
@@ -367,27 +337,24 @@ class OCRController {
 
   ///based on the left part of the word
   maxXFinder(List<Line> lines) {
-    Line firstLine = lines.reduce((value, element) =>
-        value.cornerList![0].x > element.cornerList![0].x ? value : element);
+    Line firstLine =
+        lines.reduce((value, element) => value.cornerList![0].x > element.cornerList![0].x ? value : element);
     return firstLine;
   }
 
   ///based on the left part of the word
   leastYFinder(List<Line> lines) {
-    Line firstLine = lines.reduce((value, element) =>
-        value.cornerList![0].y < element.cornerList![0].y ? value : element);
+    Line firstLine =
+        lines.reduce((value, element) => value.cornerList![0].y < element.cornerList![0].y ? value : element);
     return firstLine;
   }
 
   ///can find maxY based on the middle width
   maxYFinder(List<Line> lines, {bool useMiddle = false}) {
     Line firstLine = lines.reduce((value, element) {
-      var i1 = !useMiddle
-          ? value.cornerList![0].y
-          : (value.cornerList![0].y + value.cornerList![2].y) / 2;
-      var i2 = !useMiddle
-          ? element.cornerList![0].y
-          : (element.cornerList![0].y + element.cornerList![2].y) / 2;
+      var i1 = !useMiddle ? value.cornerList![0].y : (value.cornerList![0].y + value.cornerList![2].y) / 2;
+      var i2 =
+          !useMiddle ? element.cornerList![0].y : (element.cornerList![0].y + element.cornerList![2].y) / 2;
       return i1 > i2 ? value : element;
     });
     return firstLine;
@@ -413,9 +380,7 @@ class OCRController {
             .replaceAll('Z', '2')
             .replaceAll("G", "9")
             .replaceAll(RegExp(r'[^0-9]'), '');
-        if (s.length > 5 &&
-            !(l.text?.contains("/") ?? false) &&
-            !(l.text?.contains(".") ?? false)) {
+        if (s.length > 5 && !(l.text?.contains("/") ?? false) && !(l.text?.contains(".") ?? false)) {
           tags.add(s);
         }
       });
@@ -427,8 +392,8 @@ class OCRController {
   }
 
   ///find passengers
-  Future<List<Map<String, dynamic>>> findPassengers(String horizontalSort,
-      List<Line> allLines, List<String> inputNames) async {
+  Future<List<Map<String, dynamic>>> findPassengers(
+      String horizontalSort, List<Line> allLines, List<String> inputNames) async {
     // print(horizontalSort);
     // print(
     //     "**************************** ************************************** ********************");
@@ -444,6 +409,7 @@ class OCRController {
           //remove the possible icon from the first
           if (s.startsWith("i ") ||
               s.startsWith("↑ ") ||
+              s.startsWith("4 ") ||
               s.startsWith("† ") ||
               s.startsWith("İ ") ||
               s.startsWith("é ") ||
@@ -476,8 +442,7 @@ class OCRController {
       BestMatch bestMatch = n.bestMatch(inputNames);
       if ((bestMatch.bestMatch.rating ?? 0) > 0.85) {
         int index = searchingNames.indexOf(n);
-        String s = searchingItems[index].replaceFirst(
-            n.replaceFirst(" ", spaceBetweenWords),
+        String s = searchingItems[index].replaceFirst(n.replaceFirst(" ", spaceBetweenWords),
             bestMatch.bestMatch.target!.replaceFirst(" ", spaceBetweenWords));
         results.add(s);
       }
@@ -512,9 +477,7 @@ class OCRController {
         List<dynamic> isSeatFunction = isPassengerSeat(items[i], nextItem);
         if (isSeatFunction[0]) {
           seat = isSeatFunction[1];
-          seq = items
-              .sublist(i + 1)
-              .firstWhere((e) => isPassengerSequence(e), orElse: () => '');
+          seq = items.sublist(i + 1).firstWhere((e) => isPassengerSequence(e), orElse: () => '');
           if (i < items.length - 2 &&
               seq.length == 1 &&
               seq == items[i + 1] &&
@@ -524,18 +487,49 @@ class OCRController {
           fullName = fullName + items[i] + ' ';
         }
       }
-      bag = items
-          .firstWhere((s) => isPassengerBag(s), orElse: () => '')
-          .replaceAll('o', '0');
+      bag = items.firstWhere((s) => isPassengerBag(s), orElse: () => '').replaceAll('o', '0');
       fullName = fullName.trim();
       seq = seq.trim();
-      OCRPassenger p =
-          OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
+      OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
       if (seat.isNotEmpty) passengers.add(p.toJson());
     }
     // print("**************************** **************************************");
-    // print(passengers);
+    // print(passengers.join("\n"));
     //we return processed output here;
+    return passengers;
+  }
+
+  bool doesNamesContainString(String? name, String? family, List<String> inputNames) {
+    bool b = false;
+    name = name!.trim();
+    family = family!.trim();
+    if (name.length < 2) return false;
+    if (name.contains(" ") && name.split(" ")[0].length == 1) name = name.substring(2).trim();
+    for (var s in inputNames) {
+      if (s.toLowerCase().contains("${name.toLowerCase()} ${family.toLowerCase()}")) b = true;
+    }
+    return b;
+  }
+
+  extractPassengersData(List<Line> lines, List<String> inputNames) {
+    lines.sort((a, b) => a.cornerList![0].x.compareTo(b.cornerList![0].x));
+    List<List<Line>> sortedLines = [[]];
+    for (int i = 0; i < lines.length; i++) {
+      var e = lines[i];
+      var next = i < lines.length - 1 ? lines[i + 1] : Line(text: "");
+      print(e.text);
+      print(e.cornerList![0].x);
+      print("");
+      if (doesNamesContainString(e.text, next.text, inputNames) ||
+          doesNamesContainString(next.text, e.text, inputNames)) {
+        sortedLines.add([]);
+      }
+      sortedLines.last.add(e);
+    }
+    print("**************************** **************************************");
+    sortedResult = sortedLines.join("\n");
+    print(sortedResult);
+    List<Map<String, dynamic>> passengers = [];
     return passengers;
   }
 
@@ -553,11 +547,7 @@ class OCRController {
       if (s.length == 3) {
         s = s[0] +
             s[1] +
-            (s[2]
-                .replaceAll('8', 'b')
-                .replaceAll("0", "o")
-                .replaceAll('2', 'z')
-                .replaceAll("9", "g"));
+            (s[2].replaceAll('8', 'b').replaceAll("0", "o").replaceAll('2', 'z').replaceAll("9", "g"));
       }
       if (s.length > 2 && isAlpha(s[s.length - 2])) {
         s = s.substring(0, s.length - 1);
@@ -586,9 +576,7 @@ class OCRController {
   ///contains "/", and two numbers two side of it
   isPassengerBag(String s) {
     s = s.replaceAll('o', '0');
-    if (s.contains('/') &&
-        isNumeric(s.split('/')[0]) &&
-        isNumeric(s.split('/')[0])) return true;
+    if (s.contains('/') && isNumeric(s.split('/')[0]) && isNumeric(s.split('/')[0])) return true;
     return false;
   }
 
