@@ -1,9 +1,11 @@
 import 'package:camerakit/CameraKitController.dart';
 import 'package:camerakit/CameraKitView.dart';
+import 'package:example/consts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ocr_data_extractor/ocr_data_extractor.dart';
+import 'classes.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyTestPage(title: 'Flutter Demo Home Page'),
+      home: const MyTestPage(title: 'Back Up DCS'),
     );
   }
 }
@@ -34,76 +36,117 @@ class MyTestPage extends StatefulWidget {
 
 class _MyTestPageState extends State<MyTestPage> {
   final ImagePicker _picker = ImagePicker();
-  String body = '';
-  List<String> names = [
-    'negredo daniel',
-    'roux matilde',
-    'rizzo sophia',
-    'richard charlie',
-    'pellegrino ximena',
-    'pellegrini noah',
-    'morelli daniel',
-    'mancini ava',
-    'morel mariana',
-    'alves noah',
-    'amato rosalie',
-    'banderas lilian',
-    'bianchi elijah',
-    "RODRIGUES HUGO",
-    "FERREIRA LEO",
-    "JESUS PABLO",
-    "BIANCO CHARLIE",
-    "BROWN OLIVIA",
-    "BONNET GIORGIA",
-    "BONNET MILA",
-    "BERTRAND MARIA",
-    "BERNARD JACK",
-    "ANDRE ANA",
-    "Aref Alizadeh",
-    "Bruno Logan",
-    "CLARKE HUGO",
-    "SARAH BISHOP",
-    "SOUSA MARTIN",
-    "PEREIRA GABRIEL",
-  ];
+  bool loading = false;
+  int selected = 0;
+  List<String> results = ['', '', ''];
 
-  Future<void> _getNumbers() async {
-    setState(() => body = '');
-    final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-    List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
-    setState(() => body = OCRController().sortedResult);
-  }
+  // Future<void> _getNumbers() async {
+  //   setState(() => loading = true);
+  //   final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+  //   List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
+  //   setState(() => loading = false);
+  // }
 
-  Future<void> _getNames() async {
-    setState(() => body = '');
-    final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-    print("path is : ${pickedFile!.path}");
-    dynamic passengers = await OCRController().getNamesList(pickedFile.path, names, 2);
-    setState(() => body = OCRController().sortedResult);
-  }
+  // Future<void> _getNames() async {
+  //   setState(() => loading = true);
+  //   final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+  //   // print("path is : ${pickedFile!.path}");
+  //   dynamic passengers = await OCRController().getNamesList(pickedFile!.path, StaticLists.names, 2);
+  //   setState(() => loading = false);
+  // }
 
   Future<void> _getPassengers() async {
-    setState(() => body = '');
+    setState(() => loading = true);
     final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-    print("path is : ${pickedFile!.path}");
-    dynamic passengers = await OCRController().getPassengerList(pickedFile.path, names);
-    setState(() => body = OCRController().sortedResult);
+    // print("path is : ${pickedFile!.path}");
+    List<Map<String, dynamic>> passengers =
+        await OCRController().getPassengerList(pickedFile!.path, StaticLists.names);
+    results = [OCRController().googleText, OCRController().sortedResult, passengers.join("\n")];
+    setState(() => loading = false);
   }
 
   Future<void> _takePicture() async {
-    setState(() => body = '');
-    String? path = await Navigator.of(context).push(MaterialPageRoute(builder: (context) => _TakePicture()));
+    setState(() => loading = true);
+    String? path =
+        await Navigator.of(context).push(MaterialPageRoute(builder: (context) => const _TakePicture()));
     if (path?.isNotEmpty ?? false) {
-      dynamic passengers = await OCRController().getPassengerList(path!, names);
-      setState(() => body = OCRController().sortedResult);
+      List<Map<String, dynamic>> passengers =
+          await OCRController().getPassengerList(path!, StaticLists.names);
+      List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+      results = [OCRController().googleText, OCRController().sortedResult, data.join("\n")];
     }
+    setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: Container(padding: const EdgeInsets.all(20), child: SingleChildScrollView(child: Text(body))),
+      body: loading
+          ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(
+                    child: InkWell(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        alignment: Alignment.center,
+                        color: Colors.blue.withOpacity(0.5),
+                        child: Text("Phase 0",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                decoration: 0 == selected ? TextDecoration.underline : TextDecoration.none)),
+                      ),
+                      onTap: () => setState(() => selected = 0),
+                    ),
+                  ),
+                  const VerticalDivider(color: Colors.white, width: 1, thickness: 1),
+                  Expanded(
+                    child: InkWell(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        alignment: Alignment.center,
+                        color: Colors.blue.withOpacity(0.5),
+                        child: Text("Phase 1",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                decoration: 1 == selected ? TextDecoration.underline : TextDecoration.none)),
+                      ),
+                      onTap: () => setState(() => selected = 1),
+                    ),
+                  ),
+                  const VerticalDivider(color: Colors.white, width: 1, thickness: 1),
+                  Expanded(
+                    child: InkWell(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        alignment: Alignment.center,
+                        color: Colors.blue.withOpacity(0.5),
+                        child: Text("Phase 2",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                decoration: 2 == selected ? TextDecoration.underline : TextDecoration.none)),
+                      ),
+                      onTap: () => setState(() => selected = 2),
+                    ),
+                  ),
+                ]),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    child: SingleChildScrollView(child: Text(results[selected])),
+                  ),
+                ),
+              ],
+            ),
       floatingActionButton: Row(
         children: [
           const Spacer(),

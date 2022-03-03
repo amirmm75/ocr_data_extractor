@@ -52,7 +52,7 @@ class Line {
   @override
   String toString() {
     // return "$text--0:[x: ${cornerList![0].x.toString()}, y:${cornerList![0].y.toString()}]--2:[x: ${cornerList![2].x.toString()}, y:${cornerList![2].y.toString()}]";
-    return "$text";
+    return "(${cornerList![0].y.toStringAsFixed(2)})$text";
   }
 }
 

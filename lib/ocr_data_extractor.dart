@@ -137,6 +137,22 @@ class OCRController {
     }
   }
 
+  ///Finds a Line which is the closets to the line from the right side.
+  ///for example we can use it when we have the first name and we want to extract the last name on the right of it.
+  Line findClosetLine(Line line, List<Line> allLines) {
+    allLines.removeWhere((element) => element.cornerList![0].x <= line.cornerList![0].x);
+    allLines.removeWhere((element) => element.cornerList![0].x > line.cornerList![3].x);
+    if (allLines.isEmpty) return Line(text: "");
+    Line result = allLines.reduce((a, b) {
+      var ax = a.cornerList![0].x - line.cornerList![1].x;
+      var ay = a.cornerList![0].y - line.cornerList![1].y;
+      var bx = b.cornerList![0].x - line.cornerList![1].x;
+      var by = b.cornerList![0].y - line.cornerList![1].y;
+      return (ax * ax + ay * ay * 4 < bx * bx + by * by * 4) ? a : b;
+    });
+    return result;
+  }
+
   ///takes a String (line) which is a line and contains a list of Strings joined with space and each one of
   ///them much validate. if most of them returned true then the function must return true
   bool validateFeatureInLine(String line, double percent, bool Function(String) validate) {
@@ -499,37 +515,83 @@ class OCRController {
     return passengers;
   }
 
+  ///checks whether name and family have been in inputNames or not.
   bool doesNamesContainString(String? name, String? family, List<String> inputNames) {
     bool b = false;
     name = name!.trim();
     family = family!.trim();
     if (name.length < 2) return false;
-    if (name.contains(" ") && name.split(" ")[0].length == 1) name = name.substring(2).trim();
+    // if (name.contains(" ") && name.split(" ")[0].length == 1) name = name.substring(2).trim();
     for (var s in inputNames) {
-      if (s.toLowerCase().contains("${name.toLowerCase()} ${family.toLowerCase()}")) b = true;
+      if ("${name.toLowerCase()} ${family.toLowerCase()}".contains(s.toLowerCase())) b = true;
     }
     return b;
   }
 
+  ///new function used to extract flight passenger data using input names for a dcs passenger list.
   extractPassengersData(List<Line> lines, List<String> inputNames) {
     lines.sort((a, b) => a.cornerList![0].x.compareTo(b.cornerList![0].x));
     List<List<Line>> sortedLines = [[]];
     for (int i = 0; i < lines.length; i++) {
-      var e = lines[i];
-      var next = i < lines.length - 1 ? lines[i + 1] : Line(text: "");
-      print(e.text);
-      print(e.cornerList![0].x);
-      print("");
+      Line e = lines[i];
+      // Line next = i < lines.length - 1 ? lines[i + 1] : Line(text: "");
+      Line next = findClosetLine(e, [...lines]);
+      // print(e.text);
+      // print(e.cornerList![0].x);
+      // print("");
       if (doesNamesContainString(e.text, next.text, inputNames) ||
           doesNamesContainString(next.text, e.text, inputNames)) {
         sortedLines.add([]);
       }
       sortedLines.last.add(e);
     }
-    print("**************************** **************************************");
+    sortedLines.remove(sortedLines.first);
+    int maxWordCount = 0;
+    for (List<Line> lineList in sortedLines) {
+      lineList.sort((a, b) => b.cornerList![0].y.compareTo(a.cornerList![0].y));
+      if (maxWordCount < lineList.length) maxWordCount = lineList.length;
+    }
+    // print("**************************** **************************************");
     sortedResult = sortedLines.join("\n");
-    print(sortedResult);
+    // print(sortedResult);
     List<Map<String, dynamic>> passengers = [];
+    for (List<Line> lineList in sortedLines) {
+      String fullName = '';
+      String seat = '';
+      String seq = '';
+      String bag = '';
+      for (int i = 0; i < lineList.length; i++) {
+        String nextItem = (i == lineList.length - 1) ? '' : lineList[i + 1].text ?? '';
+        List<dynamic> isSeatFunction = isPassengerSeat(lineList[i].text ?? '', nextItem);
+        if (isSeatFunction[0]) {
+          seat = isSeatFunction[1];
+          seq = lineList
+                  .sublist(i + 1)
+                  .firstWhere((e) => isPassengerSequence(e.text ?? ''), orElse: () => Line())
+                  .text ??
+              '';
+          if (i < lineList.length - 2 &&
+              seq.length == 1 &&
+              seq == lineList[i + 1].text &&
+              isPassengerSequence(lineList[i + 2].text ?? '')) seq = lineList[i + 2].text ?? '';
+          break;
+        } else {
+          String s = (lineList[i].text ?? '').trim();
+          if (s.contains(" ") && s.split(" ")[0].length == 1) s = s.substring(2).trim();
+          if (s.split(" ").every((e) => isAlpha(s)) && i < 3) fullName = fullName + s + ' ';
+        }
+      }
+      bag = lineList
+              .firstWhere((s) => isPassengerBag(s.text ?? ''), orElse: () => Line())
+              .text
+              ?.replaceAll('o', '0') ??
+          '';
+      fullName = fullName.trim();
+      seq = seq.trim();
+      OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
+      if (seat.isNotEmpty) passengers.add(p.toJson());
+    }
+    // print(passengers.join("\n"));
     return passengers;
   }
 

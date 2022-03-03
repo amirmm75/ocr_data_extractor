@@ -1,3 +1,7 @@
+## 0.0.10
+
+* Added new function for extracting flight passengers' data
+
 ## 0.0.9
 
 * Improved sorting.
