@@ -2,6 +2,7 @@ import 'package:camerakit/CameraKitController.dart';
 import 'package:camerakit/CameraKitView.dart';
 import 'package:example/consts.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ocr_data_extractor/ocr_data_extractor.dart';
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyTestPage(title: 'Back Up DCS'),
+      home: const MyTestPage(title: 'Back Up'),
     );
   }
 }
@@ -38,7 +39,8 @@ class _MyTestPageState extends State<MyTestPage> {
   final ImagePicker _picker = ImagePicker();
   bool loading = false;
   int selected = 0;
-  List<String> results = ['', '', ''];
+  int type = 0;
+  List<String> results = ['', '', '', '', '', ''];
 
   // Future<void> _getNumbers() async {
   //   setState(() => loading = true);
@@ -58,10 +60,17 @@ class _MyTestPageState extends State<MyTestPage> {
   Future<void> _getPassengers() async {
     setState(() => loading = true);
     final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-    // print("path is : ${pickedFile!.path}");
     List<Map<String, dynamic>> passengers =
         await OCRController().getPassengerList(pickedFile!.path, StaticLists.names);
-    results = [OCRController().googleText, OCRController().sortedResult, passengers.join("\n")];
+    List<BackUpOCRPassenger> data =  passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+    results = [
+      OCRController().googleText,
+      OCRController().sortedResult,
+      OCRController().sortedResultYAxis,
+      OCRController().sortedResultXAxis,
+      OCRController().sortedResultSlope,
+      data.join("\n"),
+    ];
     setState(() => loading = false);
   }
 
@@ -72,14 +81,29 @@ class _MyTestPageState extends State<MyTestPage> {
     if (path?.isNotEmpty ?? false) {
       List<Map<String, dynamic>> passengers =
           await OCRController().getPassengerList(path!, StaticLists.names);
-      List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
-      results = [OCRController().googleText, OCRController().sortedResult, data.join("\n")];
+      List<BackUpOCRPassenger> data =  passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+      results = [
+        OCRController().googleText,
+        OCRController().sortedResult,
+        OCRController().sortedResultYAxis,
+        OCRController().sortedResultXAxis,
+        OCRController().sortedResultSlope,
+        data.join("\n"),
+      ];
     }
     setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    String showingText = '';
+    if (selected == 0) {
+      showingText = results.first;
+    } else if (selected == 1) {
+      showingText = results[type + 1];
+    } else {
+      showingText = results.last;
+    }
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: loading
@@ -94,7 +118,7 @@ class _MyTestPageState extends State<MyTestPage> {
                         padding: const EdgeInsets.all(12),
                         alignment: Alignment.center,
                         color: Colors.blue.withOpacity(0.5),
-                        child: Text("Phase 0",
+                        child: Text("Raw Data",
                             style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -111,7 +135,14 @@ class _MyTestPageState extends State<MyTestPage> {
                         padding: const EdgeInsets.all(12),
                         alignment: Alignment.center,
                         color: Colors.blue.withOpacity(0.5),
-                        child: Text("Phase 1",
+                        child: Text(
+                            type == 0
+                                ? "Sorted"
+                                : type == 1
+                                    ? "X Axis"
+                                    : type == 2
+                                        ? "Y Axis"
+                                        : "Slope",
                             style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -128,7 +159,7 @@ class _MyTestPageState extends State<MyTestPage> {
                         padding: const EdgeInsets.all(12),
                         alignment: Alignment.center,
                         color: Colors.blue.withOpacity(0.5),
-                        child: Text("Phase 2",
+                        child: Text("Extracted",
                             style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -142,13 +173,36 @@ class _MyTestPageState extends State<MyTestPage> {
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.all(20),
-                    child: SingleChildScrollView(child: Text(results[selected])),
+                    child: SingleChildScrollView(child: Text(showingText)),
                   ),
                 ),
               ],
             ),
       floatingActionButton: Row(
         children: [
+          const SizedBox(width: 25),
+          FloatingActionButton(
+            heroTag: "btn 0",
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: showingText));
+              Get.snackbar('\nCopied to Clipboard', "",
+                  duration: const Duration(seconds: 1),
+                  colorText: Colors.black,
+                  backgroundColor: Colors.white70);
+            },
+            child: const Icon(Icons.copy),
+          ),
+          const SizedBox(width: 20),
+          if (selected == 1)
+            ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                    primary: Colors.amberAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                    fixedSize: const Size(100, 50),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () => setState(() => type = (type + 1) % 4),
+                icon: const Icon(Icons.change_circle),
+                label: const Text('Type')),
           const Spacer(),
           FloatingActionButton(
             heroTag: "btn 1",

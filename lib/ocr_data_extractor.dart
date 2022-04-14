@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:ocrkit/OCRKitController.dart';
 import 'package:string_similarity/string_similarity.dart';
 import 'package:string_validator/string_validator.dart';
@@ -15,6 +16,9 @@ class OCRController {
   final OCRKitController occ = OCRKitController();
   String googleText = '';
   String sortedResult = '';
+  String sortedResultYAxis = '';
+  String sortedResultXAxis = '';
+  String sortedResultSlope = '';
   String sortedResultVertical = '';
   String spaceBetweenWords = '';
   String spaceBetweenWordsVertical = '';
@@ -62,7 +66,8 @@ class OCRController {
     if (result.toString().isEmpty) return [];
     Map<String, dynamic> data = jsonDecode(result);
     List<Line>? lines = await initialize(data);
-    List<Map<String, dynamic>> finalResult = await extractPassengersData(lines ?? [], inputNames);
+    List<Line>? disableSlopeLines = await disableSlope(lines);
+    List<Map<String, dynamic>> finalResult = await extractPassengersData(disableSlopeLines ?? [], inputNames);
     return finalResult;
   }
 
@@ -106,33 +111,33 @@ class OCRController {
       } else {
         lines = obj.lines;
       }
-      if (removeFromTopWords.isNotEmpty || removeFromTopWords2.isNotEmpty) {
-        double minX = 0;
-        double maxX = 0;
-        for (Line l in lines!) {
-          for (String s in removeFromTopWords) {
-            if (" ${l.text!} ".toLowerCase().contains(s.toLowerCase())) {
-              if (l.cornerList![0].x < minX || minX == 0) {
-                minX = l.cornerList![0].x + 0.1;
-              }
-            }
-          }
-          for (String s in removeFromTopWords2) {
-            if (" ${l.text!} ".toLowerCase().contains(s.toLowerCase())) {
-              if (l.cornerList![2].x > maxX) maxX = l.cornerList![2].x + 0.1;
-            }
-          }
-        }
-        if (maxX > minX) minX = maxX;
-        if (minX != 0) {
-          for (int i = lines.length - 1; i >= 0; i--) {
-            Line l = lines[i];
-            if (l.cornerList![2].x <= minX) {
-              lines.removeWhere((e) => e == l);
-            }
-          }
-        }
-      }
+      // if (removeFromTopWords.isNotEmpty || removeFromTopWords2.isNotEmpty) {
+      //   double minX = 0;
+      //   double maxX = 0;
+      //   for (Line l in lines!) {
+      //     for (String s in removeFromTopWords) {
+      //       if (" ${l.text!} ".toLowerCase().contains(s.toLowerCase())) {
+      //         if (l.cornerList![0].x < minX || minX == 0) {
+      //           minX = l.cornerList![0].x + 0.1;
+      //         }
+      //       }
+      //     }
+      //     for (String s in removeFromTopWords2) {
+      //       if (" ${l.text!} ".toLowerCase().contains(s.toLowerCase())) {
+      //         if (l.cornerList![2].x > maxX) maxX = l.cornerList![2].x + 0.1;
+      //       }
+      //     }
+      //   }
+      //   if (maxX > minX) minX = maxX;
+      //   if (minX != 0) {
+      //     for (int i = lines.length - 1; i >= 0; i--) {
+      //       Line l = lines[i];
+      //       if (l.cornerList![2].x <= minX) {
+      //         lines.removeWhere((e) => e == l);
+      //       }
+      //     }
+      //   }
+      // }
       return lines;
     }
   }
@@ -140,8 +145,9 @@ class OCRController {
   ///Finds a Line which is the closets to the line from the right side.
   ///for example we can use it when we have the first name and we want to extract the last name on the right of it.
   Line findClosetLine(Line line, List<Line> allLines) {
-    allLines.removeWhere((element) => element.cornerList![0].x <= line.cornerList![0].x);
+    allLines.removeWhere((element) => element.cornerList![3].x <= line.cornerList![0].x);
     allLines.removeWhere((element) => element.cornerList![0].x > line.cornerList![3].x);
+    allLines.removeWhere((element) => element.cornerList![0].y > line.cornerList![3].y);
     if (allLines.isEmpty) return Line(text: "");
     Line result = allLines.reduce((a, b) {
       var ax = a.cornerList![0].x - line.cornerList![1].x;
@@ -149,6 +155,22 @@ class OCRController {
       var bx = b.cornerList![0].x - line.cornerList![1].x;
       var by = b.cornerList![0].y - line.cornerList![1].y;
       return (ax * ax + ay * ay * 4 < bx * bx + by * by * 4) ? a : b;
+    });
+    return result;
+  }
+
+  ///Finds a Line which is the closets to the line from the bottom.
+  Line findClosetLineVertical(Line line, List<Line> allLines) {
+    allLines.removeWhere((element) => element.cornerList![0].y <= line.cornerList![1].y);
+    allLines.removeWhere((element) => element.cornerList![1].y > line.cornerList![0].y);
+    allLines.removeWhere((element) => element.cornerList![0].x < line.cornerList![0].x);
+    if (allLines.isEmpty) return Line(text: "");
+    Line result = allLines.reduce((a, b) {
+      var ax = a.cornerList![0].x - line.cornerList![3].x;
+      var ay = a.cornerList![0].y - line.cornerList![3].y;
+      var bx = b.cornerList![0].x - line.cornerList![3].x;
+      var by = b.cornerList![0].y - line.cornerList![3].y;
+      return (ax * ax * 4 + ay * ay < bx * bx * 4 + by * by) ? a : b;
     });
     return result;
   }
@@ -227,6 +249,126 @@ class OCRController {
       isInSameLines = false;
     }
     return isInSameLines;
+  }
+
+  ///Considers the slope for checking being in the Same line
+  ///uses the average slope of both lines
+  bool isInTheSameSlope(Line l1, Line l2, {var limit = 40}) {
+    // print("***** ***** *****");
+    // print(l1.text);
+    // print("${l1.cornerList![0].y} ${l1.cornerList![0].x}");
+    // print("${l1.cornerList![1].y} ${l1.cornerList![1].x}");
+    // print("${l1.cornerList![2].y} ${l1.cornerList![2].x}");
+    // print("${l1.cornerList![3].y} ${l1.cornerList![3].x}");
+    // print(l2.text);
+    // print("${l2.cornerList![0].y} ${l2.cornerList![0].x}");
+    // print("${l2.cornerList![1].y} ${l2.cornerList![1].x}");
+    // print("${l2.cornerList![2].y} ${l2.cornerList![2].x}");
+    // print("${l2.cornerList![3].y} ${l2.cornerList![3].x}");
+    //l1 must be the left one. if not? => swap
+    if (l1.cornerList![1].y < l2.cornerList![1].y) {
+      Line temp = l2;
+      l2 = l1;
+      l1 = temp;
+    }
+    //first calculate the average slope
+    var s1 = slopeOfLine(l1);
+    var s2 = slopeOfLine(l2);
+    var s3 = (s1 + s2) / 2;
+    var addingHeight = s3 *
+        (((l1.cornerList![1].y + l1.cornerList![2].y) / 2) -
+            ((l2.cornerList![1].y + l2.cornerList![2].y) / 2));
+    var distance = addingHeight +
+        ((l2.cornerList![1].x + l2.cornerList![2].x) / 2) -
+        ((l1.cornerList![1].x + l1.cornerList![2].x) / 2);
+    //distance of lines can't be negative or it will cause the true result!
+    distance = distance < 0 ? -distance : distance;
+    return (distance < limit);
+  }
+
+  ///this function returns the slope of a single word
+  ///this can be very useful
+  slopeOfLine(Line l) {
+    var xRight = (l.cornerList![1].x + l.cornerList![2].x) / 2;
+    var yRight = (l.cornerList![1].y + l.cornerList![2].y) / 2;
+    var xLeft = (l.cornerList![0].x + l.cornerList![3].x) / 2;
+    var yLeft = (l.cornerList![0].y + l.cornerList![3].y) / 2;
+    var slope = (xLeft - xRight) / (yLeft - yRight);
+    return slope;
+  }
+
+  ///this function gets line list and removes the slope
+  ///handles problem of rotated images
+  Future<List<Line>?> disableSlope(List<Line>? lines) async {
+    var minx = 0.0;
+    var miny = 0.0;
+    var slopeSum = 0.0;
+    int slopeCount = 0;
+    for (var l in lines!) {
+      if (l.text!.length > 2) {
+        slopeSum = slopeSum + slopeOfLine(l);
+        slopeCount++;
+      }
+    }
+    if (slopeCount == 0) return lines;
+    var tan = slopeSum / slopeCount; //average of slopes
+    var cos2 = 1 / (1 + tan * tan);
+    var sin2 = (tan * tan) * cos2;
+    var cos = sqrt(cos2);
+    var sin = sqrt(sin2);
+    //negative the angle(it should rotate back to get into x axis.)
+    if (tan > 0) sin = -sin;
+
+    ///Rotate formula
+    ///x' = x cos - y sin
+    ///y' = x sin + y cos
+    // var maxx = 0;
+    // var maxy = 0;
+    // for (Line l in lines) {
+    //   if (l.cornerList![0].x > maxx) {
+    //     maxx = l.cornerList![0].x;
+    //   }
+    //   if (l.cornerList![0].y > maxy) {
+    //     maxy = l.cornerList![0].y;
+    //   }
+    // }
+    for (Line l in lines) {
+      for (int i = 0; i < l.cornerList!.length; i++) {
+        var x = -1 * l.cornerList![i].y;
+        var y = -1 * l.cornerList![i].x;
+        // var x = maxy - l.cornerList![i].y;
+        // var y = maxx - l.cornerList![i].x;
+        var xx = x * cos - y * sin;
+        var yy = x * sin + y * cos;
+        l.cornerList![i].x = -1 * yy;
+        l.cornerList![i].y = -1 * xx;
+        if (l.cornerList![i].x < minx) minx = l.cornerList![i].x;
+        if (l.cornerList![i].y < miny) miny = l.cornerList![i].y;
+      }
+    }
+    // for (Line l in lines) {
+    //   if (l.cornerList![0].x < minx) {
+    //     minx = l.cornerList![0].x;
+    //   }
+    //   if (l.cornerList![0].y < miny) {
+    //     miny = l.cornerList![0].y;
+    //   }
+    // }
+    // for (Line l in lines) {
+    //   for (int i = 0; i < l.cornerList!.length; i++) {
+    //     l.cornerList![i].x = l.cornerList![i].x - minx;
+    //     l.cornerList![i].y = l.cornerList![i].y - miny;
+    //   }
+    // }
+    if (minx < 0 || miny < 0) {
+      for (Line l in lines) {
+        for (int i = 0; i < l.cornerList!.length; i++) {
+          l.cornerList![i].x = l.cornerList![i].x - minx;
+          l.cornerList![i].y = l.cornerList![i].y - miny;
+        }
+      }
+    }
+    return lines;
   }
 
   ///***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
@@ -410,9 +552,6 @@ class OCRController {
   ///find passengers
   Future<List<Map<String, dynamic>>> findPassengers(
       String horizontalSort, List<Line> allLines, List<String> inputNames) async {
-    // print(horizontalSort);
-    // print(
-    //     "**************************** ************************************** ********************");
     List<String> results = <String>[];
     List<String> searchingNames = <String>[];
     List<String> searchingItems = <String>[];
@@ -440,16 +579,6 @@ class OCRController {
         }
       }
     }
-    //now we extract vertical sort! but first we need to remove some lines...
-    // allLines.removeWhere(
-    //     (l) => !searchingItems.join(" ").contains(l.text!.toLowerCase()));
-    // String verticalSort = await initSort(allLines,
-    //     spaceBetweenWordsCount: 1, isHorizontal: false, strictness: 2);
-    // print(
-    //     "**************************** ************************************** ********************");
-    // print(verticalSort.replaceAll("\n", "\n\n"));
-    // print(
-    //     "**************************** ************************************** ********************");
     //without inputNames no item will add
     if (inputNames.isEmpty) return [];
     //searching among input names
@@ -463,26 +592,8 @@ class OCRController {
         results.add(s);
       }
     }
-    // //values extracted in results... now we use vertical sort to extract the values of it.
-    // List<String> verticalLines = verticalSort.toLowerCase().split("\n");
-    // int seatIndex;
-    // int seqIndex;
-    // int idIndex;
-    // int typeIndex;
-    // int ciIndex;
-    // int statusIndex;
-    // int agentIndex;
-    // for (int i = 1; i < verticalLines.length; i++) {
-    //   print(verticalLines[i]);
-    //   //this returns if values are "Seat" or not
-    //   if (validateFeatureInLine(verticalLines[i].trim(), 33, (String s) => isPassengerSeat(s))) {
-    //     seatIndex = i;
-    //     break;
-    //   }
-    // }
     List<Map<String, dynamic>> passengers = [];
     for (String n in results) {
-      // print(n);
       String fullName = '';
       String seat = '';
       String seq = '';
@@ -509,57 +620,176 @@ class OCRController {
       OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
       if (seat.isNotEmpty) passengers.add(p.toJson());
     }
-    // print("**************************** **************************************");
-    // print(passengers.join("\n"));
     //we return processed output here;
     return passengers;
   }
 
   ///checks whether name and family have been in inputNames or not.
-  bool doesNamesContainString(String? name, String? family, List<String> inputNames) {
+  ///the first item of the list returned is the bool result and the second is the String result.
+  List<dynamic> doesNamesContain2String(String? name, String? family, List<String> inputNames) {
     bool b = false;
-    name = name!.trim();
-    family = family!.trim();
-    if (name.length < 2) return false;
-    // if (name.contains(" ") && name.split(" ")[0].length == 1) name = name.substring(2).trim();
+    String temp = '';
+    name = name!.toLowerCase().trim();
+    family = family!.toLowerCase().trim();
+    if (name.length < 2) return [false, ''];
     for (var s in inputNames) {
-      if ("${name.toLowerCase()} ${family.toLowerCase()}".contains(s.toLowerCase())) b = true;
+      if ("$name $family".contains(s.toLowerCase())) {
+        b = true;
+        temp = s.toLowerCase();
+      }
     }
-    return b;
+    return [b, temp];
+  }
+
+  ///checks whether name and family have been in inputNames or not.
+  ///the first item of the list returned is the bool result and the second is the String result.
+  List<dynamic> doesNamesContainString(String? string, List<String> inputNames) {
+    bool b = false;
+    String temp = '';
+    string = string!.toLowerCase().trim();
+    if (string.length < 2) return [false, ''];
+    for (var s in inputNames) {
+      if (string.contains(s.toLowerCase())) {
+        b = true;
+        temp = s.toLowerCase();
+      }
+    }
+    return [b, temp];
   }
 
   ///new function used to extract flight passenger data using input names for a dcs passenger list.
-  extractPassengersData(List<Line> lines, List<String> inputNames) {
+  extractPassengersData(List<Line> lines, List<String> inputNames) async {
     lines.sort((a, b) => a.cornerList![0].x.compareTo(b.cornerList![0].x));
     List<List<Line>> sortedLines = [[]];
     for (int i = 0; i < lines.length; i++) {
       Line e = lines[i];
       // Line next = i < lines.length - 1 ? lines[i + 1] : Line(text: "");
       Line next = findClosetLine(e, [...lines]);
-      // print(e.text);
-      // print(e.cornerList![0].x);
-      // print("");
-      if (doesNamesContainString(e.text, next.text, inputNames) ||
-          doesNamesContainString(next.text, e.text, inputNames)) {
+      if (e.text!.contains(" ") && e.text!.split(" ")[0].length == 1 && isAlpha(e.text!.split(" ")[1])) {
+        e.text = e.text!.substring(2).trim();
+      }
+      List<dynamic> r1 = doesNamesContainString(e.text, inputNames);
+      List<dynamic> r2 = doesNamesContainString(next.text, inputNames);
+      List<dynamic> r3 = doesNamesContain2String(e.text, next.text, inputNames);
+      if (r1[0]) {
+        e.text = e.text!.substring(e.text!.toLowerCase().indexOf(r1[1].split(' ').first));
         sortedLines.add([]);
+      } else if (!r2[0] && r3[0]) {
+        if (sortedLines.last.contains(next)) {
+          sortedLines.last.remove(next);
+          sortedLines.add([]);
+          sortedLines.last.add(next);
+        } else {
+          sortedLines.add([]);
+        }
+        String f = r3[1].split(' ').last;
+        e.text = e.text!.substring(e.text!.toLowerCase().indexOf(r3[1].split(' ').first));
+        next.text = next.text!.substring(0, (next.text!.toLowerCase().indexOf(f) + f.length));
       }
       sortedLines.last.add(e);
     }
-    sortedLines.remove(sortedLines.first);
-    int maxWordCount = 0;
-    for (List<Line> lineList in sortedLines) {
-      lineList.sort((a, b) => b.cornerList![0].y.compareTo(a.cornerList![0].y));
-      if (maxWordCount < lineList.length) maxWordCount = lineList.length;
+    if (sortedLines.length > 1) {
+      sortedLines.remove(sortedLines.first);
     }
-    // print("**************************** **************************************");
-    sortedResult = sortedLines.join("\n");
-    // print(sortedResult);
+    int maxNameCount = 0;
+
+    int maxListCount = 0;
+    //sorting method!
+    sortedResult = '';
+    sortedResultYAxis = '';
+    sortedResultXAxis = '';
+    sortedResultSlope = '';
+    for (int k = 0; k < sortedLines.length; k++) {
+      List<Line> lineList = sortedLines[k];
+      lineList = await exclusiveLineSort([...lineList]);
+      // lineList.sort((a, b) => b.cornerList![0].y.compareTo(a.cornerList![0].y));
+      ///these codes are to set maxNameCount and maxListCount
+      //checks if the line is valid; it shouldn't share y!(be in one line)
+      bool isValid = true;
+      for (Line l in lineList) {
+        if (lineList.contains(lineList.firstWhere(
+            (e) =>
+                e != l && e.cornerList![0].y > l.cornerList![1].y && e.cornerList![1].y < l.cornerList![0].y,
+            orElse: () => Line()))) {
+          isValid = false;
+        }
+      }
+      //sets maxNameCount and maxListCount.
+      if (isValid) {
+        bool b = true;
+        int i1 = 0;
+        int i2 = 0;
+        for (int i = 0; i < lineList.length; i++) {
+          Line l = lineList[i];
+          if (b) b = isAlpha(l.text ?? '');
+          if (b) {
+            i1++;
+          } else {
+            i2++;
+          }
+        }
+        if (i1 > maxNameCount) maxNameCount = i1;
+        if (i2 > maxListCount) maxListCount = i2;
+      }
+    }
+    // for (int i = 0; i < sortedLines.length; i++) {
+    //   List<Line> lineList = sortedLines[i];
+    //   bool b = true;
+    //   for (int j = 0; j < lineList.length; j++) {
+    //     Line l = lineList[j];
+    //     if (b && !isAlpha(l.text ?? '')) {
+    //       //here, j should normally be seat index!
+    //       if (j - 1 < maxNameCount) {
+    //         lineList = lineList.sublist(0, j) + [Line(text: "")];
+    //       }
+    //     }
+    //     if (b) b = isAlpha(l.text ?? '');
+    //     if (b) {
+    //
+    //     } else {
+    //     }
+    //     // s = s +
+    //     //     " |${l.cornerList![0].y.toStringAsFixed(1)}*${l.text}*${l.cornerList![1].y.toStringAsFixed(1)}| ";
+    //   }
+    // }
+
     List<Map<String, dynamic>> passengers = [];
+    // List<int> seatIndex = [];
+    // List<int> seqIndex = [];
+    // List<int> bagIndex = [];
+    // for (int i = 0; i < maxListCount; i++) {
+    //   seatIndex.add(0);
+    //   seqIndex.add(0);
+    //   bagIndex.add(0);
+    // }
+
+    // for (int i = 0; i < maxListCount; i++) {
+    //   for (List<Line> lineList in sortedLines) {
+    //     Line line = Line(text: '');
+    //     String nextItem = '';
+    //     if (i < lineList.length) {
+    //       line = lineList[i];
+    //       nextItem = (i == lineList.length - 1) ? '' : lineList[i + 1].text ?? '';
+    //     }
+    //     List<dynamic> isSeatFunction = isPassengerSeat(line.text ?? '', nextItem);
+    //     if (isSeatFunction[0]) {
+    //       seatIndex[i]++;
+    //     }
+    //     if (isPassengerSequence(line.text ?? '')) {
+    //       seatIndex[i]++;
+    //     }
+    //     if (isPassengerBag(line.text ?? '')) {
+    //       bagIndex[i]++;
+    //     }
+    //   }
+    // }
+
     for (List<Line> lineList in sortedLines) {
       String fullName = '';
       String seat = '';
       String seq = '';
       String bag = '';
+      bool b = false;
       for (int i = 0; i < lineList.length; i++) {
         String nextItem = (i == lineList.length - 1) ? '' : lineList[i + 1].text ?? '';
         List<dynamic> isSeatFunction = isPassengerSeat(lineList[i].text ?? '', nextItem);
@@ -574,11 +804,14 @@ class OCRController {
               seq.length == 1 &&
               seq == lineList[i + 1].text &&
               isPassengerSequence(lineList[i + 2].text ?? '')) seq = lineList[i + 2].text ?? '';
-          break;
-        } else {
+          b = true;
+        } else if (!b) {
           String s = (lineList[i].text ?? '').trim();
-          if (s.contains(" ") && s.split(" ")[0].length == 1) s = s.substring(2).trim();
-          if (s.split(" ").every((e) => isAlpha(s)) && i < 3) fullName = fullName + s + ' ';
+          if (i < 3 && s.split(" ").every((e) => isAlpha(s))) {
+            fullName = fullName + s + ' ';
+          } else {
+            b = true;
+          }
         }
       }
       bag = lineList
@@ -593,6 +826,47 @@ class OCRController {
     }
     // print(passengers.join("\n"));
     return passengers;
+  }
+
+  /// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
+  /// ***** ***** ***** ***** ***** [EXCLUSIVE_FUNCTIONS] ***** ***** ***** ***** ***** *****
+  /// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
+
+  ///Algorithm set to handle a special sort
+  Future<List<Line>> exclusiveLineSort(List<Line> lineList) async {
+    List<Line> resultLines = [];
+    // print("****************** ****************** ****************** ******************");
+    // print(lineList.join(" "));
+    for (int i = 0; i < lineList.length; i) {
+      List<Line> subLines = [];
+      Line line = leastXFinder(lineList);
+      var maxX = line.cornerList![3].x;
+      for (int i = lineList.length - 1; i >= 0; i--) {
+        if (lineList[i].cornerList![0].x < maxX) {
+          subLines.add(lineList[i]);
+          lineList.remove(lineList[i]);
+        }
+      }
+      // print(subLines.join(" "));
+      // print("******------******");
+      subLines.sort((a, b) => b.cornerList![0].y.compareTo(a.cornerList![0].y));
+      sortedResult = sortedResult + subLines.join(" ") + " => ";
+      sortedResultYAxis = sortedResultYAxis +
+          subLines.map((e) => "(${e.cornerList![0].y.toStringAsFixed(2)})${e.text}").toList().join(" ") +
+          " => ";
+      sortedResultXAxis = sortedResultXAxis +
+          subLines.map((e) => "(${e.cornerList![0].x.toStringAsFixed(2)})${e.text}").toList().join(" ") +
+          " => ";
+      sortedResultSlope = sortedResultSlope +
+          subLines.map((e) => "(${slopeOfLine(e).toStringAsFixed(2)})${e.text}").toList().join(" ") +
+          " => ";
+      resultLines = resultLines + subLines;
+    }
+    sortedResult = sortedResult + "\n\n";
+    sortedResultYAxis = sortedResultYAxis + "\n\n";
+    sortedResultXAxis = sortedResultXAxis + "\n\n";
+    sortedResultSlope = sortedResultSlope + "\n\n";
+    return resultLines;
   }
 
   /// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
