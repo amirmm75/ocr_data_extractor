@@ -1,10 +1,12 @@
 import 'package:camerakit/CameraKitController.dart';
 import 'package:camerakit/CameraKitView.dart';
 import 'package:example/consts.dart';
+import 'package:example/line_drawing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:ocr_data_extractor/classes.dart';
 import 'package:ocr_data_extractor/ocr_data_extractor.dart';
 import 'classes.dart';
 
@@ -41,6 +43,8 @@ class _MyTestPageState extends State<MyTestPage> {
   int selected = 0;
   int type = 0;
   List<String> results = ['', '', '', '', '', ''];
+  List<Line> beforeLines = [];
+  List<Line> afterLines = [];
 
   // Future<void> _getNumbers() async {
   //   setState(() => loading = true);
@@ -62,7 +66,7 @@ class _MyTestPageState extends State<MyTestPage> {
     final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
     List<Map<String, dynamic>> passengers =
         await OCRController().getPassengerList(pickedFile!.path, StaticLists.names);
-    List<BackUpOCRPassenger> data =  passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+    List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
     results = [
       OCRController().googleText,
       OCRController().sortedResult,
@@ -71,6 +75,8 @@ class _MyTestPageState extends State<MyTestPage> {
       OCRController().sortedResultSlope,
       data.join("\n"),
     ];
+    beforeLines = OCRController().beforeLines;
+    afterLines = OCRController().afterLines;
     setState(() => loading = false);
   }
 
@@ -81,7 +87,7 @@ class _MyTestPageState extends State<MyTestPage> {
     if (path?.isNotEmpty ?? false) {
       List<Map<String, dynamic>> passengers =
           await OCRController().getPassengerList(path!, StaticLists.names);
-      List<BackUpOCRPassenger> data =  passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+      List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
       results = [
         OCRController().googleText,
         OCRController().sortedResult,
@@ -91,7 +97,20 @@ class _MyTestPageState extends State<MyTestPage> {
         data.join("\n"),
       ];
     }
+    beforeLines = OCRController().beforeLines;
+    afterLines = OCRController().afterLines;
     setState(() => loading = false);
+  }
+
+  showLines(bool isRaw) {
+    Object o = Object(lines: isRaw ? beforeLines : afterLines);
+    List<Line> lines = Object.fromJson(o.toJson()).lines ?? [];
+    if (lines.isEmpty) {
+      Get.snackbar('\nNothing to show!', "",
+          duration: const Duration(seconds: 1), colorText: Colors.red, backgroundColor: Colors.white70);
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => LineDrawing(lines: [...lines])));
   }
 
   @override
@@ -105,7 +124,19 @@ class _MyTestPageState extends State<MyTestPage> {
       showingText = results.last;
     }
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.raw_on),
+            onPressed: () => showLines(true),
+          ),
+          IconButton(
+            icon: const Icon(Icons.raw_off),
+            onPressed: () => showLines(false),
+          ),
+        ],
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator(color: Colors.blue))
           : Column(

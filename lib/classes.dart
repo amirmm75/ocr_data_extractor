@@ -64,8 +64,8 @@ class CornerPoint {
   CornerPoint({this.x, this.y});
 
   CornerPoint.fromJson(Map<String, dynamic> json) {
-    x = json['x'];
-    y = json['y'];
+    x = json['x'].toDouble();
+    y = json['y'].toDouble();
   }
 
   Map<String, dynamic> toJson() {

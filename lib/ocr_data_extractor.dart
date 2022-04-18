@@ -22,6 +22,9 @@ class OCRController {
   String sortedResultVertical = '';
   String spaceBetweenWords = '';
   String spaceBetweenWordsVertical = '';
+  List<Line> beforeLines = [];
+  List<Line> afterLines = [];
+  int averageLineLength = 0;
   bool isSortComplete = true;
   bool isSortCompleteVertical = true;
 
@@ -66,7 +69,11 @@ class OCRController {
     if (result.toString().isEmpty) return [];
     Map<String, dynamic> data = jsonDecode(result);
     List<Line>? lines = await initialize(data);
+    Object o1 = Object(lines: lines);
+    beforeLines = Object.fromJson(o1.toJson()).lines ?? [];
     List<Line>? disableSlopeLines = await disableSlope(lines);
+    Object o2 = Object(lines: disableSlopeLines);
+    afterLines = Object.fromJson(o2.toJson()).lines ?? [];
     List<Map<String, dynamic>> finalResult = await extractPassengersData(disableSlopeLines ?? [], inputNames);
     return finalResult;
   }
@@ -138,6 +145,15 @@ class OCRController {
       //     }
       //   }
       // }
+      List<int> lengths = [];
+      for (var e in lines!) {
+        if (!lengths.contains(e.text!.length)) {
+          lengths.add(e.text!.length);
+        }
+      }
+      lengths.sort((a, b) => a.compareTo(b));
+      int i = lengths.length ~/ 2;
+      averageLineLength = lengths[(i > 5 ? i - 1 : i)];
       return lines;
     }
   }
@@ -305,7 +321,7 @@ class OCRController {
     var slopeSum = 0.0;
     int slopeCount = 0;
     for (var l in lines!) {
-      if (l.text!.length > 2) {
+      if (l.text!.length > averageLineLength) {
         slopeSum = slopeSum + slopeOfLine(l);
         slopeCount++;
       }
@@ -317,7 +333,9 @@ class OCRController {
     var cos = sqrt(cos2);
     var sin = sqrt(sin2);
     //negative the angle(it should rotate back to get into x axis.)
-    if (tan > 0) sin = -sin;
+    if (tan > 0) {
+      sin = -sin;
+    }
 
     ///Rotate formula
     ///x' = x cos - y sin
@@ -668,25 +686,37 @@ class OCRController {
       if (e.text!.contains(" ") && e.text!.split(" ")[0].length == 1 && isAlpha(e.text!.split(" ")[1])) {
         e.text = e.text!.substring(2).trim();
       }
+      List<Line> missedLines = [];
       List<dynamic> r1 = doesNamesContainString(e.text, inputNames);
       List<dynamic> r2 = doesNamesContainString(next.text, inputNames);
       List<dynamic> r3 = doesNamesContain2String(e.text, next.text, inputNames);
       if (r1[0]) {
+        for (int i = sortedLines.last.length - 1; i >= 0; i--) {
+          Line l = sortedLines.last[i];
+          if (e.cornerList![0].x < l.cornerList![3].x) {
+            missedLines.add(l);
+            sortedLines.last.removeAt(i);
+          }
+        }
         e.text = e.text!.substring(e.text!.toLowerCase().indexOf(r1[1].split(' ').first));
         sortedLines.add([]);
       } else if (!r2[0] && r3[0]) {
-        if (sortedLines.last.contains(next)) {
-          sortedLines.last.remove(next);
-          sortedLines.add([]);
-          sortedLines.last.add(next);
-        } else {
-          sortedLines.add([]);
+        for (int i = sortedLines.last.length - 1; i >= 0; i--) {
+          Line l = sortedLines.last[i];
+          if (e.cornerList![0].x < l.cornerList![3].x) {
+            missedLines.add(l);
+            sortedLines.last.removeAt(i);
+          }
         }
+        sortedLines.add([]);
         String f = r3[1].split(' ').last;
         e.text = e.text!.substring(e.text!.toLowerCase().indexOf(r3[1].split(' ').first));
         next.text = next.text!.substring(0, (next.text!.toLowerCase().indexOf(f) + f.length));
       }
       sortedLines.last.add(e);
+      for (Line l in missedLines) {
+        sortedLines.last.add(l);
+      }
     }
     if (sortedLines.length > 1) {
       sortedLines.remove(sortedLines.first);
