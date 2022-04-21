@@ -176,10 +176,12 @@ class OCRController {
   }
 
   ///Finds a Line which is the closets to the line from the bottom.
-  Line findClosetLineVertical(Line line, List<Line> allLines) {
+  Line findClosetLineVertical(Line line, List<Line> allLines, {bool fromBot = true}) {
     allLines.removeWhere((element) => element.cornerList![0].y <= line.cornerList![1].y);
     allLines.removeWhere((element) => element.cornerList![1].y > line.cornerList![0].y);
-    allLines.removeWhere((element) => element.cornerList![0].x < line.cornerList![0].x);
+    if (fromBot) {
+      allLines.removeWhere((element) => element.cornerList![0].x < line.cornerList![0].x);
+    }
     if (allLines.isEmpty) return Line(text: "");
     Line result = allLines.reduce((a, b) {
       var ax = a.cornerList![0].x - line.cornerList![3].x;
@@ -721,125 +723,51 @@ class OCRController {
     if (sortedLines.length > 1) {
       sortedLines.remove(sortedLines.first);
     }
-    int maxNameCount = 0;
-
-    int maxListCount = 0;
+    // int maxNameCount = 0;
+    // int maxListCount = 0;
+    // List<Line> maxList = [];
     //sorting method!
     sortedResult = '';
     sortedResultYAxis = '';
     sortedResultXAxis = '';
     sortedResultSlope = '';
+    List<Map<String, dynamic>> passengers = [];
     for (int k = 0; k < sortedLines.length; k++) {
       List<Line> lineList = sortedLines[k];
+      if (k == sortedLines.length - 1) {
+        Line line = leastXFinder(lineList);
+        lineList.removeWhere((e) => e.cornerList![0].x > line.cornerList![3].x);
+      }
       lineList = await exclusiveLineSort([...lineList]);
-      // lineList.sort((a, b) => b.cornerList![0].y.compareTo(a.cornerList![0].y));
-      ///these codes are to set maxNameCount and maxListCount
-      //checks if the line is valid; it shouldn't share y!(be in one line)
-      bool isValid = true;
-      for (Line l in lineList) {
-        if (lineList.contains(lineList.firstWhere(
-            (e) =>
-                e != l && e.cornerList![0].y > l.cornerList![1].y && e.cornerList![1].y < l.cornerList![0].y,
-            orElse: () => Line()))) {
-          isValid = false;
-        }
-      }
-      //sets maxNameCount and maxListCount.
-      if (isValid) {
-        bool b = true;
-        int i1 = 0;
-        int i2 = 0;
-        for (int i = 0; i < lineList.length; i++) {
-          Line l = lineList[i];
-          if (b) b = isAlpha(l.text ?? '');
-          if (b) {
-            i1++;
-          } else {
-            i2++;
-          }
-        }
-        if (i1 > maxNameCount) maxNameCount = i1;
-        if (i2 > maxListCount) maxListCount = i2;
-      }
-    }
-    // for (int i = 0; i < sortedLines.length; i++) {
-    //   List<Line> lineList = sortedLines[i];
-    //   bool b = true;
-    //   for (int j = 0; j < lineList.length; j++) {
-    //     Line l = lineList[j];
-    //     if (b && !isAlpha(l.text ?? '')) {
-    //       //here, j should normally be seat index!
-    //       if (j - 1 < maxNameCount) {
-    //         lineList = lineList.sublist(0, j) + [Line(text: "")];
-    //       }
-    //     }
-    //     if (b) b = isAlpha(l.text ?? '');
-    //     if (b) {
-    //
-    //     } else {
-    //     }
-    //     // s = s +
-    //     //     " |${l.cornerList![0].y.toStringAsFixed(1)}*${l.text}*${l.cornerList![1].y.toStringAsFixed(1)}| ";
-    //   }
-    // }
 
-    List<Map<String, dynamic>> passengers = [];
-    // List<int> seatIndex = [];
-    // List<int> seqIndex = [];
-    // List<int> bagIndex = [];
-    // for (int i = 0; i < maxListCount; i++) {
-    //   seatIndex.add(0);
-    //   seqIndex.add(0);
-    //   bagIndex.add(0);
-    // }
-
-    // for (int i = 0; i < maxListCount; i++) {
-    //   for (List<Line> lineList in sortedLines) {
-    //     Line line = Line(text: '');
-    //     String nextItem = '';
-    //     if (i < lineList.length) {
-    //       line = lineList[i];
-    //       nextItem = (i == lineList.length - 1) ? '' : lineList[i + 1].text ?? '';
-    //     }
-    //     List<dynamic> isSeatFunction = isPassengerSeat(line.text ?? '', nextItem);
-    //     if (isSeatFunction[0]) {
-    //       seatIndex[i]++;
-    //     }
-    //     if (isPassengerSequence(line.text ?? '')) {
-    //       seatIndex[i]++;
-    //     }
-    //     if (isPassengerBag(line.text ?? '')) {
-    //       bagIndex[i]++;
-    //     }
-    //   }
-    // }
-
-    for (List<Line> lineList in sortedLines) {
       String fullName = '';
       String seat = '';
       String seq = '';
       String bag = '';
-      bool b = false;
+      bool b = true;
       for (int i = 0; i < lineList.length; i++) {
-        String nextItem = (i == lineList.length - 1) ? '' : lineList[i + 1].text ?? '';
-        List<dynamic> isSeatFunction = isPassengerSeat(lineList[i].text ?? '', nextItem);
-        if (isSeatFunction[0]) {
-          seat = isSeatFunction[1];
-          seq = lineList
-                  .sublist(i + 1)
-                  .firstWhere((e) => isPassengerSequence(e.text ?? ''), orElse: () => Line())
-                  .text ??
-              '';
-          if (i < lineList.length - 2 &&
-              seq.length == 1 &&
-              seq == lineList[i + 1].text &&
-              isPassengerSequence(lineList[i + 2].text ?? '')) seq = lineList[i + 2].text ?? '';
-          b = true;
-        } else if (!b) {
+        if (b) {
+          b = (lineList[i].text ?? '').split(" ").every((e) => isAlpha(e));
+        }
+        if (b) {
+          //here we enter the name.
           String s = (lineList[i].text ?? '').trim();
-          if (i < 3 && s.split(" ").every((e) => isAlpha(s))) {
-            fullName = fullName + s + ' ';
-          } else {
+          fullName = fullName + s + ' ';
+        } else {
+          //here we enter the rest of the values.
+          String nextItem = (i == lineList.length - 1) ? '' : lineList[i + 1].text ?? '';
+          List<dynamic> isSeatFunction = isPassengerSeat(lineList[i].text ?? '', nextItem);
+          if (isSeatFunction[0]) {
+            seat = isSeatFunction[1];
+            seq = lineList
+                    .sublist(i + 1)
+                    .firstWhere((e) => isPassengerSequence(e.text ?? ''), orElse: () => Line())
+                    .text ??
+                '';
+            if (i < lineList.length - 2 &&
+                seq.length == 1 &&
+                seq == lineList[i + 1].text &&
+                isPassengerSequence(lineList[i + 2].text ?? '')) seq = lineList[i + 2].text ?? '';
             b = true;
           }
         }
@@ -851,9 +779,58 @@ class OCRController {
           '';
       fullName = fullName.trim();
       seq = seq.trim();
+      if (seq == '0') seq = '';
       OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
       if (seat.isNotEmpty) passengers.add(p.toJson());
+      // lineList.sort((a, b) => b.cornerList![0].y.compareTo(a.cornerList![0].y));
+      // ///these codes are to set maxNameCount and maxListCount
+      // //checks if the line is valid; it shouldn't share y!(be in one line)
+      // bool isValid = true;
+      // for (Line l in lineList) {
+      //   if (lineList.first.cornerList![2].x < l.cornerList![0].x) {\
+      //     isValid = false;
+      //   }
+      // }
+      // //sets maxNameCount and maxListCount.
+      // if (isValid) {
+      //   bool b = true;
+      //   int i1 = 0;
+      //   int i2 = 0;
+      //   for (int i = 0; i < lineList.length; i++) {
+      //     Line l = lineList[i];
+      //     if (b) b = isAlpha(l.text ?? '');
+      //     if (b) {
+      //       i1++;
+      //     } else {
+      //       i2++;
+      //     }
+      //   }
+      //   if (i1 > maxNameCount) maxNameCount = i1;
+      //   if (i2 > maxListCount) {
+      //     maxListCount = i2;
+      //     maxList = [];
+      //     for (int i = i1; i < lineList.length; i++) {
+      //       Line l = lineList[i];
+      //       maxList.add(Line(text: l.text, cornerList: l.cornerList));
+      //     }
+      //   }
+      // }
     }
+    // maxList.sort((b, a) => a.cornerList![0].y.compareTo(b.cornerList![0].y));
+    // ///we will add temp Line to empty spaces of the table!
+    // //it should be done from last to first.
+    // for (int i = 0; i < sortedLines.length; i++) {
+    //   List<Line> lineList = sortedLines[i];
+    //   lineList = await exclusiveLineFiller(lineList, maxList, maxNameCount);
+    // }
+    // List<int> seatIndex = [];
+    // List<int> seqIndex = [];
+    // List<int> bagIndex = [];
+    // for (int i = 0; i < maxListCount; i++) {
+    //   seatIndex.add(0);
+    //   seqIndex.add(0);
+    //   bagIndex.add(0);
+    // }
     // print(passengers.join("\n"));
     return passengers;
   }
@@ -897,6 +874,36 @@ class OCRController {
     sortedResultXAxis = sortedResultXAxis + "\n\n";
     sortedResultSlope = sortedResultSlope + "\n\n";
     return resultLines;
+  }
+
+  ///This algorithm takes a line list and fills it with temp Lines so all list lines follow one set of rules
+  Future<List<Line>> exclusiveLineFiller(List<Line> lineList, List<Line> maxList, int maxNameCount) async {
+    List<Line> result = [];
+    //this part checks and adds names.
+    for (int i = 0; i < lineList.length; i++) {
+      Line l = lineList[i];
+      if (l.cornerList![1].y > maxList.first.cornerList![0].y &&
+          l.cornerList![1].x < maxList.first.cornerList![3].x) {
+        result.add(l);
+      }
+    }
+    if (maxNameCount > result.length) {
+      int c = maxNameCount - result.length;
+      for (int i = 0; i < c; i++) {
+        result.add(Line(text: ""));
+      }
+    }
+    //this part checks and adds values.
+    for (int i = 0; i < maxList.length; i++) {
+      Line line = maxList[i];
+      List<Line> lines = [...lineList];
+      lines.removeWhere((element) =>
+          (element.cornerList![0].y <= line.cornerList![1].y) ||
+          (element.cornerList![1].y > line.cornerList![0].y) ||
+          (result.contains(element)));
+      result.add(lines.isEmpty ? Line(text: '', cornerList: line.cornerList) : lines.first);
+    }
+    return result;
   }
 
   /// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****

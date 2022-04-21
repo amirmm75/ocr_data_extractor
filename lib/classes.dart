@@ -53,6 +53,7 @@ class Line {
   String toString() {
     // return "$text--0:[x: ${cornerList![0].x.toString()}, y:${cornerList![0].y.toString()}]--2:[x: ${cornerList![2].x.toString()}, y:${cornerList![2].y.toString()}]";
     // return "(${cornerList![0].y.toStringAsFixed(2)})$text";
+    // return "$text [(${cornerList![0].y.toStringAsFixed(0)},${cornerList![0].x.toStringAsFixed(0)}) (${cornerList![2].y.toStringAsFixed(0)},${cornerList![2].x.toStringAsFixed(0)})]";
     return text ?? "";
   }
 }

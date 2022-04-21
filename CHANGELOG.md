@@ -1,3 +1,7 @@
+## 0.0.11
+
+* Extracting flight passengers' data improved. Uses line rotation.
+
 ## 0.0.10
 
 * Added new function for extracting flight passengers' data
