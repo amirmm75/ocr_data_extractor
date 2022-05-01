@@ -1,3 +1,19 @@
+## 0.0.15
+
+* Added new orientation.
+
+## 0.0.14
+
+* Minor bugs fixed.
+
+## 0.0.13
+
+* Extracting flight passengers' with OCR json data changed.
+
+## 0.0.12
+
+* Extracting flight passengers' with OCR json data added.
+
 ## 0.0.11
 
 * Extracting flight passengers' data improved. Uses line rotation.

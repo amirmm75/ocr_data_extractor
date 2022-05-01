@@ -38,10 +38,10 @@ class LogoPainter extends CustomPainter {
     var miny = 0.0;
     for (var l in lines) {
       for (var c in l.cornerList!) {
-        if(c.x > maxx) maxx = c.x;
-        if(c.y > maxy) maxy = c.y;
-        if(c.x < minx || minx == 0) minx = c.x;
-        if(c.y < miny || miny == 0) miny = c.y;
+        if (c.x > maxx) maxx = c.x;
+        if (c.y > maxy) maxy = c.y;
+        if (c.x < minx || minx == 0) minx = c.x;
+        if (c.y < miny || miny == 0) miny = c.y;
       }
     }
     // print(maxx);

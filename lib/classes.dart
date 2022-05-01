@@ -53,7 +53,8 @@ class Line {
   String toString() {
     // return "$text--0:[x: ${cornerList![0].x.toString()}, y:${cornerList![0].y.toString()}]--2:[x: ${cornerList![2].x.toString()}, y:${cornerList![2].y.toString()}]";
     // return "(${cornerList![0].y.toStringAsFixed(2)})$text";
-    // return "$text [(${cornerList![0].y.toStringAsFixed(0)},${cornerList![0].x.toStringAsFixed(0)}) (${cornerList![2].y.toStringAsFixed(0)},${cornerList![2].x.toStringAsFixed(0)})]";
+    // return "$text [(${cornerList![0].x.toStringAsFixed(0)},${cornerList![0].y.toStringAsFixed(0)}), (${cornerList![1].x.toStringAsFixed(0)},${cornerList![1].y.toStringAsFixed(0)}), (${cornerList![2].x.toStringAsFixed(0)},${cornerList![2].y.toStringAsFixed(0)}), (${cornerList![3].x.toStringAsFixed(0)},${cornerList![3].y.toStringAsFixed(0)})]";
+    // return "$text [(${cornerList![0].y.toStringAsFixed(0)},${cornerList![0].x.toStringAsFixed(0)}), (${cornerList![2].y.toStringAsFixed(0)},${cornerList![2].x.toStringAsFixed(0)})]";
     return text ?? "";
   }
 }
@@ -85,7 +86,8 @@ class PassengerList {
   List<OCRPassenger> passengerList;
 
   Map<String, dynamic> toJson() => {
-        "PassengerList": List<dynamic>.from(passengerList.map((x) => x.toJson())),
+        "PassengerList":
+            List<dynamic>.from(passengerList.map((x) => x.toJson())),
       };
 }
 
@@ -101,7 +103,8 @@ class OCRPassenger {
   // String status;
   // String agent;
 
-  OCRPassenger({required this.name, this.seat = '', this.seq = '', this.bag = ''});
+  OCRPassenger(
+      {required this.name, this.seat = '', this.seq = '', this.bag = ''});
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
@@ -117,8 +120,11 @@ class OCRPassenger {
 }
 
 extension StringCasingExtension on String {
-  String toCapitalized() => length > 0 ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
+  String toCapitalized() =>
+      length > 0 ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
 
-  String toTitleCase() =>
-      replaceAll(RegExp(' +'), ' ').split(' ').map((str) => str.toCapitalized()).join(' ');
+  String toTitleCase() => replaceAll(RegExp(' +'), ' ')
+      .split(' ')
+      .map((str) => str.toCapitalized())
+      .join(' ');
 }
