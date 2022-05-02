@@ -1,3 +1,7 @@
+## 0.0.16
+
+* Improved Extracting Passengers.
+
 ## 0.0.15
 
 * Added new orientation.

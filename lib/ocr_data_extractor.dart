@@ -675,8 +675,8 @@ class OCRController {
       String bag = '';
       List<String> items = n.split(spaceBetweenWords);
       for (int i = 0; i < items.length; i++) {
-        String nextItem = (i == items.length - 1) ? '' : items[i + 1];
-        List<dynamic> isSeatFunction = isPassengerSeat(items[i], nextItem);
+        // String nextItem = (i == items.length - 1) ? '' : items[i + 1];
+        List<dynamic> isSeatFunction = isPassengerSeat(items[i]);
         if (isSeatFunction[0]) {
           seat = isSeatFunction[1];
           seq = items.sublist(i + 1).firstWhere((e) => isPassengerSequence(e), orElse: () => '');
@@ -856,23 +856,113 @@ class OCRController {
       await waitWhile(() => waitComplete);
 
       ///we will add temp Line to empty spaces of the table!
+      ///then we recognize the type of every column.
       waitComplete = false;
       for (int i = 0; i < sortedLines.length; i++) {
         List<Line> lineList = sortedLines[i];
         sortedLines[i] = await exclusiveLineFiller(lineList, maxList, maxNameCount);
-        lineList = sortedLines[i];
-        String fullName = lineList.sublist(0, maxNameCount).join(" ").trim();
-        String seat = lineList.length > maxNameCount ? lineList[maxNameCount].text ?? '' : '';
-        String seq = lineList.length - 1 > maxNameCount ? lineList[maxNameCount + 1].text ?? '' : '';
-        String bag = '';
-        OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
-        if (seat.isNotEmpty || seq.isNotEmpty) passengers.add(p.toJson());
         if (i == (sortedLines.length - 1)) waitComplete = true;
       }
       await waitWhile(() => waitComplete);
-      // for (List<Line> lineList in sortedLines) {
-      //   print(lineList.join(" "));
-      // }
+      int seatIndex = -1;
+      int seqIndex = -1;
+      int bagIndex = -1;
+      int seatCount = 0;
+      int seqCount = 0;
+      int bagCount = 0;
+      bool isSeqOrganized = true;
+      for (int i = 0; i < maxListCount; i++) {
+        int seat0 = 0;
+        int seq0 = 0;
+        int bag0 = 0;
+        for (List<Line> lineList in sortedLines) {
+          Line l = lineList[i + maxNameCount];
+          if (isPassengerSeat(l.text ?? '')) seat0++;
+          if (isPassengerSequence(l.text ?? '')) seq0++;
+          if (isPassengerBag(l.text ?? '')) bag0++;
+        }
+        if (seat0 > bag0 && seat0 > seq0 && seat0 > seatCount) {
+          seatIndex = i;
+          seatCount = seat0;
+        }
+        if (seq0 > seat0 && seq0 > bag0 && seq0 > seqCount) {
+          seqIndex = i;
+          seqCount = seq0;
+          isSeqOrganized = true;
+          for (int j = 1; j < sortedLines.length; j++) {
+            String bef = sortedLines[j - 1][i + maxNameCount].text ?? '';
+            String aft = sortedLines[j][i + maxNameCount].text ?? '';
+            int a0 = int.tryParse(bef) ?? -1;
+            int a1 = int.tryParse(aft) ?? -1;
+            if (a0 >= 0 && a1 >= 0 && (a0 - a1) != 1 && (a1 - a0) != 1) {
+              isSeqOrganized = false;
+            }
+          }
+        }
+        if (bag0 > seat0 && bag0 > seq0 && bag0 > bagCount) {
+          bagIndex = i;
+          bagCount = seq0;
+        }
+      }
+      for (int i = 0; i < sortedLines.length; i++) {
+        List<Line> lineList = sortedLines[i];
+        String fullName = lineList.sublist(0, maxNameCount).join(" ").trim();
+        String seat = seatIndex >= 0 ? lineList[maxNameCount + seatIndex].text?.trim() ?? '' : '';
+        String seq = seqIndex >= 0 ? lineList[maxNameCount + seqIndex].text?.trim() ?? '' : '';
+        String bag =
+            bagIndex >= 0 ? lineList[maxNameCount + bagIndex].text?.trim().replaceAll("o", "0") ?? '' : '';
+        if (!isPassengerSeat(seat)) {
+          seat = seat.toLowerCase().replaceAll(" ", "");
+          if (isAlpha(seat.substring(seat.length - 2, seat.length))) {
+            seat = seat.substring(0, seat.length - 1);
+          }
+        }
+        if (!isPassengerSequence(seq)) {
+          seq = seq
+              .toUpperCase()
+              .replaceAll(" ", "")
+              .replaceAll("O", "0")
+              .replaceAll("L", "1")
+              .replaceAll("I", "1")
+              .replaceAll("T", "1")
+              .replaceAll('Z', '2')
+              .replaceAll("G", "9");
+        }
+        if (isSeqOrganized && seq.isEmpty && seqIndex >= 0) {
+          if (i == 0) {
+            if (sortedLines.length > 2) {
+              int a1 = int.tryParse(sortedLines[i + 1][seqIndex + maxNameCount].text ?? '') ?? -1;
+              int a2 = int.tryParse(sortedLines[i + 2][seqIndex + maxNameCount].text ?? '') ?? -1;
+              if (a1 >= 0 && a2 >= 0 && a1 > a2) {
+                int a0 = a1 + 1;
+                seq = a0.toString();
+              } else if (a1 >= 0 && a2 >= 0) {
+                int a0 = a1 - 1;
+                seq = a0.toString();
+              }
+            }
+          } else if (i > 0 && i < sortedLines.length - 1) {
+            int a0 = int.tryParse(sortedLines[i - 1][seqIndex + maxNameCount].text ?? '') ?? -1;
+            int a1 = int.tryParse(sortedLines[i + 1][seqIndex + maxNameCount].text ?? '') ?? -1;
+            if (a0 - a1 == 2 || a1 - a0 == 2) {
+              int a2 = (a0 + a1) ~/ 2;
+              seq = a2.toString();
+            }
+          } else {
+            int a0 = int.tryParse(sortedLines[i - 2][seqIndex + maxNameCount].text ?? '') ?? -1;
+            int a1 = int.tryParse(sortedLines[i - 1][seqIndex + maxNameCount].text ?? '') ?? -1;
+            if (a0 >= 0 && a1 >= 0 && a0 > a1) {
+              int a2 = a1 - 1;
+              seq = a2.toString();
+            } else if (a0 >= 0 && a1 >= 0) {
+              int a2 = a1 + 1;
+              seq = a2.toString();
+            }
+          }
+        }
+        OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
+        if (seat.isNotEmpty || seq.isNotEmpty) passengers.add(p.toJson());
+      }
       return passengers;
     } catch (e) {
       print(e);
@@ -976,26 +1066,26 @@ class OCRController {
 
   ///format: ["1B", "1A", "2A", "12A", "299C"];
   /// contains a number less than 300 and an alpha letter (a-zA-Z)
-  isPassengerSeat(String s, String nextItem) {
+  isPassengerSeat(String s) {
     bool b = false;
     s = s.trim();
-    //this layer handles little mistakes!
-    if (nextItem != '' && isNumeric(nextItem)) {
-      if (s.length == 3) {
-        s = s[0] +
-            s[1] +
-            (s[2].replaceAll('8', 'b').replaceAll("0", "o").replaceAll('2', 'z').replaceAll("9", "g"));
-      }
-      if (s.length > 2 && isAlpha(s[s.length - 2])) {
-        s = s.substring(0, s.length - 1);
-      }
-    }
+    // //this layer handles little mistakes!
+    // if (nextItem != '' && isNumeric(nextItem)) {
+    //   if (s.length == 3) {
+    //     s = s[0] +
+    //         s[1] +
+    //         (s[2].replaceAll('8', 'b').replaceAll("0", "o").replaceAll('2', 'z').replaceAll("9", "g"));
+    //   }
+    //   if (s.length > 2 && isAlpha(s[s.length - 2])) {
+    //     s = s.substring(0, s.length - 1);
+    //   }
+    // }
     //this is the main check!
     if (s.length > 1 &&
         s.length < 5 &&
         isNumeric(s.substring(0, s.length - 1)) &&
         isAlpha(s.substring(s.length - 1, s.length))) b = true;
-    return [b, s];
+    return b;
   }
 
   ///format: ["101", "102", "103"]
