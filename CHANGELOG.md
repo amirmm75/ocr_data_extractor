@@ -1,3 +1,7 @@
+## 0.0.23
+
+* For extracting passengers, it's handled that names be right or middle of the screen.
+
 ## 0.0.22
 
 * Live Scanning bugs fixed. major bugs fixed.

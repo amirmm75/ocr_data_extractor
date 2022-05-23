@@ -274,8 +274,8 @@ class _MyTestPageState extends State<MyTestPage> {
           FloatingActionButton(
             heroTag: "btn 2",
             onPressed: () {
-              Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (context) => const LiveScan()));
+              Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const LiveScan()));
             },
             child: const Icon(Icons.video_camera_front),
           ),
@@ -305,7 +305,8 @@ class _TakePicture extends StatefulWidget {
 }
 
 class _TakePictureState extends State<_TakePicture> {
-  final CameraKitExtController _cameraKitExtController = CameraKitExtController();
+  final CameraKitExtController _cameraKitExtController =
+      CameraKitExtController();
 
   @override
   Widget build(BuildContext context) {

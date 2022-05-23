@@ -761,6 +761,7 @@ class OCRController {
     try {
       lines.sort((a, b) => a.cornerList![0].x.compareTo(b.cornerList![0].x));
       List<List<Line>> sortedLines = [[]];
+      List<List<Line>> nameLines = [[]];
       for (int i = 0; i < lines.length; i++) {
         Line e = lines[i];
         // Line next = i < lines.length - 1 ? lines[i + 1] : Line(text: "");
@@ -780,12 +781,14 @@ class OCRController {
               sortedLines.last.removeAt(i);
             }
           }
-          if (containsNumber(e.text ?? '')) {
+          if (!isAlpha(e.text ?? '')) {
             e.text = r1[1];
           } else {
             e.text = e.text!.substring(e.text!.toLowerCase().indexOf(r1[1].split(' ').first));
           }
           sortedLines.add([]);
+          nameLines.add([e]);
+          //end of (r1[0]) condition
         } else if (!r2[0] && r3[0]) {
           for (int i = sortedLines.last.length - 1; i >= 0; i--) {
             Line l = sortedLines.last[i];
@@ -794,7 +797,6 @@ class OCRController {
               sortedLines.last.removeAt(i);
             }
           }
-          sortedLines.add([]);
           String f0 = r3[1].split(' ').first;
           String f1 = r3[1].split(' ').last;
           if (r3[1].trim().split(' ').length > 2) {
@@ -802,16 +804,19 @@ class OCRController {
             tempL.removeLast();
             f0 = tempL.join(" ");
           }
-          if (containsNumber(e.text ?? '')) {
+          if (!isAlpha(e.text ?? '')) {
             e.text = f0;
           } else {
             e.text = e.text!.substring(e.text!.toLowerCase().indexOf(r3[1].split(' ').first));
           }
-          if (containsNumber(next.text ?? '')) {
+          if (!isAlpha(next.text ?? '')) {
             next.text = f1;
           } else {
             next.text = next.text!.substring(0, (next.text!.toLowerCase().indexOf(f1) + f1.length));
           }
+          sortedLines.add([]);
+          nameLines.add([e, next]);
+          //end of (!r2[0] && r3[0]) condition
         }
         sortedLines.last.add(e);
         for (Line l in missedLines) {
@@ -820,6 +825,7 @@ class OCRController {
       }
       if (sortedLines.length > 1) {
         sortedLines.remove(sortedLines.first);
+        nameLines.remove(nameLines.first);
       } else {
         return <Map<String, dynamic>>[];
       }
@@ -840,6 +846,8 @@ class OCRController {
           lineList.removeWhere((e) => e.cornerList![0].x > line.cornerList![3].x);
         }
         sortedLines[k] = await exclusiveLineSort([...lineList]);
+        sortedLines[k].removeWhere((e) => nameLines[k].contains(e));
+        sortedLines[k] = nameLines[k] + sortedLines[k];
         lineList = sortedLines[k];
 
         ///these codes are to set maxNameCount and maxListCount
@@ -883,7 +891,8 @@ class OCRController {
       waitComplete = false;
       for (int i = 0; i < sortedLines.length; i++) {
         List<Line> lineList = sortedLines[i];
-        sortedLines[i] = await exclusiveLineFiller(lineList, maxList, maxNameCount);
+        List<Line> nameList = nameLines[i];
+        sortedLines[i] = await exclusiveLineFiller(lineList, nameList, maxList, maxNameCount);
         if (i == (sortedLines.length - 1)) waitComplete = true;
       }
       await waitWhile(() => waitComplete);
@@ -1040,12 +1049,16 @@ class OCRController {
   }
 
   ///This algorithm takes a line list and fills it with temp Lines so all list lines follow one set of rules
-  Future<List<Line>> exclusiveLineFiller(List<Line> lineList, List<Line> maxList, int maxNameCount) async {
+  Future<List<Line>> exclusiveLineFiller(
+      List<Line> lineList, List<Line> nameList, List<Line> maxList, int maxNameCount) async {
     List<Line> result = [];
     //this part checks and adds names.
     for (int i = 0; i < lineList.length; i++) {
       Line l = lineList[i];
-      if (i <= maxNameCount && maxList.isNotEmpty && l.cornerList![1].y > maxList.first.cornerList![0].y) {
+      if (i <= maxNameCount &&
+          maxList.isNotEmpty &&
+          l.cornerList![0].y > nameList.last.cornerList![1].y &&
+          l.cornerList![1].y < nameList.first.cornerList![0].y) {
         if (l.text!.length > 1) {
           result.add(l);
         }
