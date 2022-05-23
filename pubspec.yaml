@@ -1,6 +1,6 @@
 name: ocr_data_extractor
 description: A Flutter package uses ocrkit for processing output. Image texts extracted and processed to return the special data wanted. Just pass the image path to the chosen function.
-version: 0.0.16
+version: 0.0.22
 homepage: https://github.com/amirmm75/ocr_data_extractor
 
 environment:
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ocrkit: ^0.0.25
+  ocrkit: ^0.0.29
   string_similarity: ^2.0.0
   string_validator: ^0.3.0
 

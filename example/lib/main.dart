@@ -1,7 +1,8 @@
-import 'package:camerakit/CameraKitController.dart';
-import 'package:camerakit/CameraKitView.dart';
+import 'package:camera_kit_ext/CameraKitExtController.dart';
+import 'package:camera_kit_ext/CameraKitExtView.dart';
 import 'package:example/consts.dart';
 import 'package:example/line_drawing.dart';
+import 'package:example/live_scan.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -245,9 +246,9 @@ class _MyTestPageState extends State<MyTestPage> {
             ),
       floatingActionButton: Row(
         children: [
-          const SizedBox(width: 25),
+          const SizedBox(width: 24),
           FloatingActionButton(
-            heroTag: "btn 0",
+            heroTag: "btn 1",
             onPressed: () {
               Clipboard.setData(ClipboardData(text: showingText));
               Get.snackbar('\nCopied to Clipboard', "",
@@ -257,7 +258,7 @@ class _MyTestPageState extends State<MyTestPage> {
             },
             child: const Icon(Icons.copy),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 9),
           if (selected == 1)
             ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -271,13 +272,22 @@ class _MyTestPageState extends State<MyTestPage> {
                 label: const Text('Type')),
           const Spacer(),
           FloatingActionButton(
-            heroTag: "btn 1",
+            heroTag: "btn 2",
+            onPressed: () {
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => const LiveScan()));
+            },
+            child: const Icon(Icons.video_camera_front),
+          ),
+          const SizedBox(width: 9),
+          FloatingActionButton(
+            heroTag: "btn 2.5",
             onPressed: _takePicture,
             child: const Icon(Icons.camera_alt),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 9),
           FloatingActionButton(
-            heroTag: "btn 2",
+            heroTag: "btn 3",
             onPressed: _getPassengers,
             child: const Icon(Icons.attach_file),
           ),
@@ -295,7 +305,7 @@ class _TakePicture extends StatefulWidget {
 }
 
 class _TakePictureState extends State<_TakePicture> {
-  final CameraKitController _cameraKitController = CameraKitController();
+  final CameraKitExtController _cameraKitExtController = CameraKitExtController();
 
   @override
   Widget build(BuildContext context) {
@@ -304,7 +314,7 @@ class _TakePictureState extends State<_TakePicture> {
       backgroundColor: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _cameraKitController
+        onPressed: () => _cameraKitExtController
             .takePicture()
             .then((value) => Navigator.pop(context, value)),
         child: const Icon(Icons.camera_alt),
@@ -313,8 +323,8 @@ class _TakePictureState extends State<_TakePicture> {
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
         color: Colors.white,
-        child: CameraKitView(
-          cameraKitController: _cameraKitController,
+        child: CameraKitExtView(
+          cameraKitController: _cameraKitExtController,
           previewFlashMode: CameraFlashMode.auto,
           onPermissionDenied: () => Navigator.pop(context),
         ),

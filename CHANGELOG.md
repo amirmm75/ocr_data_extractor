@@ -1,3 +1,27 @@
+## 0.0.22
+
+* Live Scanning bugs fixed. major bugs fixed.
+
+## 0.0.21
+
+* OCRKit updated to use for android. minor bugs fixed.
+
+## 0.0.20
+
+* Minor bug fixed.
+
+## 0.0.19
+
+* Minor bug fixed.
+
+## 0.0.18
+
+* Minor bug fixed.
+
+## 0.0.17
+
+* Minor bug fixed.
+
 ## 0.0.16
 
 * Improved Extracting Passengers.

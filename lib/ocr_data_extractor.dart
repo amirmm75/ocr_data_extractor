@@ -182,7 +182,11 @@ class OCRController {
       }
       lengths.sort((a, b) => a.compareTo(b));
       int i = lengths.length ~/ 2;
-      averageLineLength = lengths[(i > 5 ? i - 1 : i)];
+      if (lengths.isEmpty) {
+        averageLineLength = 0;
+      } else {
+        averageLineLength = lengths[(i > 5 ? i - 1 : i)];
+      }
       return lines;
     }
   }
@@ -420,8 +424,9 @@ class OCRController {
         }
       }
       return lines;
-    } catch (e) {
-      print(e);
+    } catch (e, stacktrace) {
+      print("disableSlope: " + e.toString());
+      print('Stacktrace: ' + stacktrace.toString());
       return lines;
     }
   }
@@ -709,9 +714,18 @@ class OCRController {
     //.replaceAll('8', 'b').replaceAll("0", "o").replaceAll('2', 'z').replaceAll("9", "g")
     if (name.length < 2) return [false, ''];
     for (var s in inputNames) {
+      String fn = '';
+      List<String> fnList = s.split(" ");
+      for (int i = fnList.length; i > 0; i--) {
+        fn = fn + ' ' + fnList[i - 1];
+      }
+      fn = fn.trim();
       if ("$name $family".contains(s.toLowerCase()) || checkSimilarity("$name $family", s)) {
         b = true;
         temp = s.toLowerCase();
+      } else if ("$name $family".contains(fn.toLowerCase()) || checkSimilarity("$name $family", fn)) {
+        b = true;
+        temp = fn.toLowerCase();
       }
     }
     return [b, temp];
@@ -725,9 +739,18 @@ class OCRController {
     string = string!.toLowerCase().trim();
     if (string.length < 2) return [false, ''];
     for (var s in inputNames) {
+      String fn = '';
+      List<String> fnList = s.split(" ");
+      for (int i = fnList.length; i > 0; i--) {
+        fn = fn + ' ' + fnList[i - 1];
+      }
+      fn = fn.trim();
       if (string.contains(s.toLowerCase()) || checkSimilarity(string, s)) {
         b = true;
         temp = s.toLowerCase();
+      } else if (string.contains(fn.toLowerCase()) || checkSimilarity(string, fn)) {
+        b = true;
+        temp = fn.toLowerCase();
       }
     }
     return [b, temp];
@@ -909,11 +932,12 @@ class OCRController {
         String fullName = lineList.sublist(0, maxNameCount).join(" ").trim();
         String seat = seatIndex >= 0 ? lineList[maxNameCount + seatIndex].text?.trim() ?? '' : '';
         String seq = seqIndex >= 0 ? lineList[maxNameCount + seqIndex].text?.trim() ?? '' : '';
-        String bag =
-            bagIndex >= 0 ? lineList[maxNameCount + bagIndex].text?.trim().replaceAll("o", "0") ?? '' : '';
+        String bag = bagIndex >= 0
+            ? lineList[maxNameCount + bagIndex].text?.trim().toUpperCase().replaceAll("O", "0") ?? ''
+            : '';
         if (!isPassengerSeat(seat)) {
           seat = seat.toLowerCase().replaceAll(" ", "");
-          if (isAlpha(seat.substring(seat.length - 2, seat.length))) {
+          if (seat.length > 2 && isAlpha(seat.substring(seat.length - 2, seat.length))) {
             seat = seat.substring(0, seat.length - 1);
           }
         }
@@ -938,13 +962,13 @@ class OCRController {
                 seq = a0.toString();
               } else if (a1 >= 0 && a2 >= 0) {
                 int a0 = a1 - 1;
-                seq = a0.toString();
+                if (a0 > 0) seq = a0.toString();
               }
             }
           } else if (i > 0 && i < sortedLines.length - 1) {
             int a0 = int.tryParse(sortedLines[i - 1][seqIndex + maxNameCount].text ?? '') ?? -1;
             int a1 = int.tryParse(sortedLines[i + 1][seqIndex + maxNameCount].text ?? '') ?? -1;
-            if (a0 - a1 == 2 || a1 - a0 == 2) {
+            if ((a0 - a1 == 2 || a1 - a0 == 2) && a0 > 0 && a1 > 0) {
               int a2 = (a0 + a1) ~/ 2;
               seq = a2.toString();
             }
@@ -953,19 +977,18 @@ class OCRController {
             int a1 = int.tryParse(sortedLines[i - 1][seqIndex + maxNameCount].text ?? '') ?? -1;
             if (a0 >= 0 && a1 >= 0 && a0 > a1) {
               int a2 = a1 - 1;
-              seq = a2.toString();
-            } else if (a0 >= 0 && a1 >= 0) {
-              int a2 = a1 + 1;
-              seq = a2.toString();
+              if (a2 > 0) seq = a2.toString();
             }
           }
         }
+        if (!isPassengerBag(bag)) bag = '';
         OCRPassenger p = OCRPassenger(name: fullName, seat: seat, seq: seq, bag: bag);
         if (seat.isNotEmpty || seq.isNotEmpty) passengers.add(p.toJson());
       }
       return passengers;
-    } catch (e) {
-      print(e);
+    } catch (e, stacktrace) {
+      print("extractPassengersData: " + e.toString());
+      print('Stacktrace: ' + stacktrace.toString());
       return <Map<String, dynamic>>[];
     }
   }
@@ -1022,7 +1045,7 @@ class OCRController {
     //this part checks and adds names.
     for (int i = 0; i < lineList.length; i++) {
       Line l = lineList[i];
-      if (l.cornerList![1].y > maxList.first.cornerList![0].y) {
+      if (i <= maxNameCount && maxList.isNotEmpty && l.cornerList![1].y > maxList.first.cornerList![0].y) {
         if (l.text!.length > 1) {
           result.add(l);
         }

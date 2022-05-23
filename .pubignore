@@ -29,4 +29,8 @@
 .pub-cache/
 .pub/
 /build/
+/example/android/
+/example/ios/
 /example/build/
+/example/pubspec.yaml
+/example/test/
