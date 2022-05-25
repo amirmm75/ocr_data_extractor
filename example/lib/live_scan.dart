@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:example/consts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -38,36 +37,36 @@ class _LiveScanState extends State<LiveScan> {
     super.initState();
   }
 
-  onTextRead(barcode, values, orientation) async {
+  onTextRead(barcode, values, orientation) {
     if (loading) return;
     loading = true;
     Map<String, dynamic> input = {"text": barcode, "orientation": orientation, "values": values};
     // List<dynamic> l = jsonDecode(values);
-    List<Map<String, dynamic>> passengers =
-        await OCRController().getPassengerListByOCRData(input, StaticLists.names);
-    await Future.delayed(const Duration(seconds: 1));
-    loading = false;
-    List<BackUpOCRPassenger> bup = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
-    List<BackUpOCRPassenger> pl = [];
-    for (var element in bup) {
-      List<BackUpOCRPassenger> matchPaxes = pPaxes
-          .where((pp) =>
-              (pp.name.toLowerCase().contains(element.fName.toLowerCase()) &&
-                  pp.name.toLowerCase().contains(element.lName.toLowerCase())) ||
-              (element.name.toLowerCase().contains(pp.fName.toLowerCase()) &&
-                  element.name.toLowerCase().contains(pp.lName.toLowerCase())))
-          .toList();
-      //todo if (model.backedupPaxes has matchPaxes) {} else if...
-      if (matchPaxes.isNotEmpty) {
-        BackUpOCRPassenger pCopy = matchPaxes.first;
-        pCopy.seq = element.seq;
-        pCopy.seat = element.seat;
-        pCopy.weight = element.weight;
-        pl.add(pCopy);
+    OCRController()
+        .getPassengerListByOCRData(input, StaticLists.names)
+        .then((List<Map<String, dynamic>> passengers) {
+      loading = false;
+      List<BackUpOCRPassenger> bup = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+      List<BackUpOCRPassenger> pl = [];
+      for (var element in bup) {
+        List<BackUpOCRPassenger> matchPaxes = pPaxes
+            .where((pp) =>
+                (pp.name.toLowerCase().contains(element.fName.toLowerCase()) &&
+                    pp.name.toLowerCase().contains(element.lName.toLowerCase())) ||
+                (element.name.toLowerCase().contains(pp.fName.toLowerCase()) &&
+                    element.name.toLowerCase().contains(pp.lName.toLowerCase())))
+            .toList();
+        if (matchPaxes.isNotEmpty) {
+          BackUpOCRPassenger pCopy = matchPaxes.first;
+          pCopy.seq = element.seq;
+          pCopy.seat = element.seat;
+          pCopy.weight = element.weight;
+          pl.add(pCopy);
+        }
       }
-    }
-    backedUpPaxes = (backedUpPaxes + pl).toSet().toList();
-    setState(() {});
+      backedUpPaxes = (backedUpPaxes + pl).toSet().toList();
+      setState(() {});
+    });
   }
 
   @override

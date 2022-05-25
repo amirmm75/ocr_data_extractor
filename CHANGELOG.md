@@ -1,3 +1,7 @@
+## 0.0.24
+
+* Major bugs fixed for extracting passengers.
+
 ## 0.0.23
 
 * For extracting passengers, it's handled that names be right or middle of the screen.

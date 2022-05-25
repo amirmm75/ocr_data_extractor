@@ -66,17 +66,24 @@ class OCRController {
 
   ///this function extracts list of data of passengers of a brs flight table.
   Future<List<Map<String, dynamic>>> getPassengerList(String path, List<String> inputNames) async {
-    final result = await occ.processImageFromPathWithoutView(path);
-    if (result.toString().isEmpty) return [];
-    Map<String, dynamic> data = jsonDecode(result);
-    List<Line>? lines = await initialize(data);
-    Object o1 = Object(lines: lines);
-    beforeLines = Object.fromJson(o1.toJson()).lines ?? [];
-    List<Line>? disableSlopeLines = await disableSlope(lines);
-    Object o2 = Object(lines: disableSlopeLines);
-    afterLines = Object.fromJson(o2.toJson()).lines ?? [];
-    List<Map<String, dynamic>> finalResult = await extractPassengersData(disableSlopeLines ?? [], inputNames);
-    return finalResult;
+    try {
+      final result = await occ.processImageFromPathWithoutView(path);
+      if (result.toString().isEmpty) return [];
+      Map<String, dynamic> data = jsonDecode(result);
+      List<Line>? lines = await initialize(data);
+      Object o1 = Object(lines: lines);
+      beforeLines = Object.fromJson(o1.toJson()).lines ?? [];
+      List<Line>? disableSlopeLines = await disableSlope(lines);
+      Object o2 = Object(lines: disableSlopeLines);
+      afterLines = Object.fromJson(o2.toJson()).lines ?? [];
+      List<Map<String, dynamic>> finalResult =
+          await extractPassengersData(disableSlopeLines ?? [], inputNames);
+      return finalResult;
+    } catch (e, stackTrace) {
+      print("getPassengerList: $e");
+      print("StackTrace: $stackTrace");
+      return [];
+    }
   }
 
   ///this function extracts list of data of passengers of a brs flight table.
@@ -196,7 +203,7 @@ class OCRController {
   Line findClosetLine(Line line, List<Line> allLines) {
     allLines.removeWhere((element) => element.cornerList![3].x <= line.cornerList![0].x);
     allLines.removeWhere((element) => element.cornerList![0].x > line.cornerList![3].x);
-    allLines.removeWhere((element) => element.cornerList![0].y > line.cornerList![3].y);
+    allLines.removeWhere((element) => element.cornerList![0].y > line.cornerList![2].y);
     if (allLines.isEmpty) return Line(text: "");
     Line result = allLines.reduce((a, b) {
       var ax = a.cornerList![0].x - line.cornerList![1].x;
@@ -781,7 +788,7 @@ class OCRController {
               sortedLines.last.removeAt(i);
             }
           }
-          if (!isAlpha(e.text ?? '')) {
+          if (!e.text!.toLowerCase().contains(r1[1].split(' ').first)) {
             e.text = r1[1];
           } else {
             e.text = e.text!.substring(e.text!.toLowerCase().indexOf(r1[1].split(' ').first));
@@ -804,12 +811,12 @@ class OCRController {
             tempL.removeLast();
             f0 = tempL.join(" ");
           }
-          if (!isAlpha(e.text ?? '')) {
+          if (!e.text!.toLowerCase().contains(r3[1].split(' ').first)) {
             e.text = f0;
           } else {
             e.text = e.text!.substring(e.text!.toLowerCase().indexOf(r3[1].split(' ').first));
           }
-          if (!isAlpha(next.text ?? '')) {
+          if (!next.text!.toLowerCase().contains(f1)) {
             next.text = f1;
           } else {
             next.text = next.text!.substring(0, (next.text!.toLowerCase().indexOf(f1) + f1.length));
@@ -842,46 +849,30 @@ class OCRController {
       for (int k = 0; k < sortedLines.length; k++) {
         List<Line> lineList = sortedLines[k];
         if (k == sortedLines.length - 1 && sortedLines.length > 1) {
-          Line line = leastXFinder(lineList);
+          Line line = nameLines[k].first;
           lineList.removeWhere((e) => e.cornerList![0].x > line.cornerList![3].x);
         }
         sortedLines[k] = await exclusiveLineSort([...lineList]);
         sortedLines[k].removeWhere((e) => nameLines[k].contains(e));
-        sortedLines[k] = nameLines[k] + sortedLines[k];
         lineList = sortedLines[k];
+        lineList.removeWhere((e) => e.cornerList![0].x > nameLines[k].first.cornerList![3].x);
 
         ///these codes are to set maxNameCount and maxListCount
-        //checks if the line is valid; it shouldn't share y!(be in one line)
-        bool isValid = true;
+        int i1 = nameLines[k].length;
+        if (i1 > maxNameCount) maxNameCount = i1;
         for (Line l in lineList) {
-          if (lineList.first.cornerList![2].x < l.cornerList![0].x) {
-            isValid = false;
-          }
-        }
-        //sets maxNameCount and maxListCount.
-        if (isValid) {
           bool b = true;
-          int i1 = 0;
-          int i2 = 0;
-          for (int i = 0; i < lineList.length; i++) {
-            Line l = lineList[i];
-            if (b) b = !containsNumber(l.text ?? '');
-            if (b) {
-              i1++;
-            } else {
-              i2++;
+          for (Line line in maxList) {
+            if (l.cornerList![0].y > line.cornerList![2].y && line.cornerList![0].y > l.cornerList![2].y) {
+              b = false;
             }
           }
-          if (i1 > maxNameCount) maxNameCount = i1;
-          if (i2 > maxListCount) {
-            maxListCount = i2;
-            maxList = [];
-            for (int i = i1; i < lineList.length; i++) {
-              Line l = lineList[i];
-              maxList.add(Line(text: l.text, cornerList: l.cornerList));
-            }
+          if (b && !nameLines[k].contains(l)) {
+            maxList.add(Line(text: l.text, cornerList: l.cornerList));
+            maxListCount++;
           }
         }
+        sortedLines[k] = nameLines[k] + sortedLines[k];
         if (k == (sortedLines.length - 1)) waitComplete = true;
       }
       await waitWhile(() => waitComplete);
