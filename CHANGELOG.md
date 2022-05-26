@@ -1,3 +1,7 @@
+## 0.0.25
+
+* Some functions are now faster for live OCR use.
+
 ## 0.0.24
 
 * Major bugs fixed for extracting passengers.

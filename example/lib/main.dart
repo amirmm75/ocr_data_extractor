@@ -84,18 +84,17 @@ class _MyTestPageState extends State<MyTestPage> {
 
   Future<void> _getPassengers() async {
     setState(() => loading = true);
-    final pickedFile =
-        await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-    List<Map<String, dynamic>> passengers = await OCRController()
-        .getPassengerList(pickedFile!.path, StaticLists.names);
-    List<BackUpOCRPassenger> data =
-        passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+    final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+    List<Map<String, dynamic>> passengers =
+        await OCRController().getPassengerList(pickedFile!.path, StaticLists.names);
+    List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
     results = [
       OCRController().googleText,
       OCRController().sortedResult,
-      OCRController().sortedResultYAxis,
-      OCRController().sortedResultXAxis,
-      OCRController().sortedResultSlope,
+      '', '', '',
+      // OCRController().sortedResultYAxis,
+      // OCRController().sortedResultXAxis,
+      // OCRController().sortedResultSlope,
       data.join("\n"),
     ];
     beforeLines = OCRController().beforeLines;
@@ -105,19 +104,19 @@ class _MyTestPageState extends State<MyTestPage> {
 
   Future<void> _takePicture() async {
     setState(() => loading = true);
-    String? path = await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => const _TakePicture()));
+    String? path =
+        await Navigator.of(context).push(MaterialPageRoute(builder: (context) => const _TakePicture()));
     if (path?.isNotEmpty ?? false) {
       List<Map<String, dynamic>> passengers =
           await OCRController().getPassengerList(path!, StaticLists.names);
-      List<BackUpOCRPassenger> data =
-          passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+      List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
       results = [
         OCRController().googleText,
         OCRController().sortedResult,
-        OCRController().sortedResultYAxis,
-        OCRController().sortedResultXAxis,
-        OCRController().sortedResultSlope,
+        '', '', '',
+        // OCRController().sortedResultYAxis,
+        // OCRController().sortedResultXAxis,
+        // OCRController().sortedResultSlope,
         data.join("\n"),
       ];
     }
@@ -131,13 +130,10 @@ class _MyTestPageState extends State<MyTestPage> {
     List<Line> lines = Object.fromJson(o.toJson()).lines ?? [];
     if (lines.isEmpty) {
       Get.snackbar('\nNothing to show!', "",
-          duration: const Duration(seconds: 1),
-          colorText: Colors.red,
-          backgroundColor: Colors.white70);
+          duration: const Duration(seconds: 1), colorText: Colors.red, backgroundColor: Colors.white70);
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) => LineDrawing(lines: [...lines])));
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => LineDrawing(lines: [...lines])));
   }
 
   @override
@@ -181,15 +177,12 @@ class _MyTestPageState extends State<MyTestPage> {
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                decoration: 0 == selected
-                                    ? TextDecoration.underline
-                                    : TextDecoration.none)),
+                                decoration: 0 == selected ? TextDecoration.underline : TextDecoration.none)),
                       ),
                       onTap: () => setState(() => selected = 0),
                     ),
                   ),
-                  const VerticalDivider(
-                      color: Colors.white, width: 1, thickness: 1),
+                  const VerticalDivider(color: Colors.white, width: 1, thickness: 1),
                   Expanded(
                     child: InkWell(
                       child: Container(
@@ -208,15 +201,12 @@ class _MyTestPageState extends State<MyTestPage> {
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                decoration: 1 == selected
-                                    ? TextDecoration.underline
-                                    : TextDecoration.none)),
+                                decoration: 1 == selected ? TextDecoration.underline : TextDecoration.none)),
                       ),
                       onTap: () => setState(() => selected = 1),
                     ),
                   ),
-                  const VerticalDivider(
-                      color: Colors.white, width: 1, thickness: 1),
+                  const VerticalDivider(color: Colors.white, width: 1, thickness: 1),
                   Expanded(
                     child: InkWell(
                       child: Container(
@@ -228,9 +218,7 @@ class _MyTestPageState extends State<MyTestPage> {
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                decoration: 2 == selected
-                                    ? TextDecoration.underline
-                                    : TextDecoration.none)),
+                                decoration: 2 == selected ? TextDecoration.underline : TextDecoration.none)),
                       ),
                       onTap: () => setState(() => selected = 2),
                     ),
@@ -258,24 +246,22 @@ class _MyTestPageState extends State<MyTestPage> {
             },
             child: const Icon(Icons.copy),
           ),
-          const SizedBox(width: 9),
-          if (selected == 1)
-            ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                    primary: Colors.amberAccent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25)),
-                    fixedSize: const Size(100, 50),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold)),
-                onPressed: () => setState(() => type = (type + 1) % 4),
-                icon: const Icon(Icons.change_circle),
-                label: const Text('Type')),
+          // const SizedBox(width: 9),
+          // if (selected == 1)
+          //   ElevatedButton.icon(
+          //       style: ElevatedButton.styleFrom(
+          //           primary: Colors.amberAccent,
+          //           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          //           fixedSize: const Size(100, 50),
+          //           textStyle: const TextStyle(fontWeight: FontWeight.bold)),
+          //       onPressed: () => setState(() => type = (type + 1) % 4),
+          //       icon: const Icon(Icons.change_circle),
+          //       label: const Text('Type')),
           const Spacer(),
           FloatingActionButton(
             heroTag: "btn 2",
             onPressed: () {
-              Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const LiveScan()));
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const LiveScan()));
             },
             child: const Icon(Icons.video_camera_front),
           ),
@@ -305,8 +291,7 @@ class _TakePicture extends StatefulWidget {
 }
 
 class _TakePictureState extends State<_TakePicture> {
-  final CameraKitExtController _cameraKitExtController =
-      CameraKitExtController();
+  final CameraKitExtController _cameraKitExtController = CameraKitExtController();
 
   @override
   Widget build(BuildContext context) {
@@ -315,9 +300,7 @@ class _TakePictureState extends State<_TakePicture> {
       backgroundColor: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _cameraKitExtController
-            .takePicture()
-            .then((value) => Navigator.pop(context, value)),
+        onPressed: () => _cameraKitExtController.takePicture().then((value) => Navigator.pop(context, value)),
         child: const Icon(Icons.camera_alt),
       ),
       body: Container(

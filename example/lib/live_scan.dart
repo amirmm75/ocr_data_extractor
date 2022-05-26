@@ -18,11 +18,12 @@ class _LiveScanState extends State<LiveScan> {
   bool loading = false;
   bool isPaused = false;
   List<BackUpOCRPassenger> pPaxes = [];
+  List<Map<String, dynamic>> ocrInputs = [];
   List<BackUpOCRPassenger> backedUpPaxes = [];
 
   @override
   void initState() {
-    for (String s in StaticLists.names) {
+    for (String s in StaticLists.names2) {
       String name = s.trim();
       pPaxes.add(BackUpOCRPassenger(
           name: name,
@@ -38,23 +39,41 @@ class _LiveScanState extends State<LiveScan> {
   }
 
   onTextRead(barcode, values, orientation) {
-    if (loading) return;
-    loading = true;
+    // try {
+    // Stopwatch stopwatch = Stopwatch()..start();
+    // stopwatch.stop();
+    // print('Time: ${stopwatch.elapsed}');
     Map<String, dynamic> input = {"text": barcode, "orientation": orientation, "values": values};
-    // List<dynamic> l = jsonDecode(values);
+    print('+');
+    ocrInputs.add(input);
+    if (!loading) {
+      print('start');
+      loading = true;
+      processOCR();
+    }
+    // } catch (e, stackTrace) {
+    //   print("OnTextRead: $e");
+    //   print("StackTrace: $stackTrace");
+    // }
+  }
+
+  processOCR() {
+    Map<String, dynamic> input = ocrInputs.first;
+    Stopwatch stopwatch = Stopwatch()..start();
+    // stopwatch.stop();
+    print('Time1: ${stopwatch.elapsed}');
     OCRController()
-        .getPassengerListByOCRData(input, StaticLists.names)
+        .getPassengerListByOCRData(input, StaticLists.names2)
         .then((List<Map<String, dynamic>> passengers) {
-      loading = false;
       List<BackUpOCRPassenger> bup = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
       List<BackUpOCRPassenger> pl = [];
       for (var element in bup) {
         List<BackUpOCRPassenger> matchPaxes = pPaxes
             .where((pp) =>
-                (pp.name.toLowerCase().contains(element.fName.toLowerCase()) &&
-                    pp.name.toLowerCase().contains(element.lName.toLowerCase())) ||
-                (element.name.toLowerCase().contains(pp.fName.toLowerCase()) &&
-                    element.name.toLowerCase().contains(pp.lName.toLowerCase())))
+                pp.name.toLowerCase().contains(element.fName.toLowerCase()) &&
+                pp.name.toLowerCase().contains(element.lName.toLowerCase()) &&
+                element.name.toLowerCase().contains(pp.fName.toLowerCase()) &&
+                element.name.toLowerCase().contains(pp.lName.toLowerCase()))
             .toList();
         if (matchPaxes.isNotEmpty) {
           BackUpOCRPassenger pCopy = matchPaxes.first;
@@ -66,6 +85,16 @@ class _LiveScanState extends State<LiveScan> {
       }
       backedUpPaxes = (backedUpPaxes + pl).toSet().toList();
       setState(() {});
+      ocrInputs.removeAt(0);
+      print("-");
+      if (ocrInputs.isEmpty) {
+        loading = false;
+        print('end');
+      } else {
+        processOCR();
+      }
+      stopwatch.stop();
+      print('Time3: ${stopwatch.elapsed}');
     });
   }
 

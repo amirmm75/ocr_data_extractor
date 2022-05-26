@@ -16,9 +16,10 @@ class OCRController {
   final OCRKitController occ = OCRKitController();
   String googleText = '';
   String sortedResult = '';
-  String sortedResultYAxis = '';
-  String sortedResultXAxis = '';
-  String sortedResultSlope = '';
+
+  // String sortedResultYAxis = '';
+  // String sortedResultXAxis = '';
+  // String sortedResultSlope = '';
   String sortedResultVertical = '';
   String spaceBetweenWords = '';
   String spaceBetweenWordsVertical = '';
@@ -91,11 +92,11 @@ class OCRController {
       Map<String, dynamic> data, List<String> inputNames) async {
     if (data.isEmpty) return [];
     List<Line>? lines = await initialize(data);
-    Object o1 = Object(lines: lines);
-    beforeLines = Object.fromJson(o1.toJson()).lines ?? [];
+    // Object o1 = Object(lines: lines);
+    // beforeLines = Object.fromJson(o1.toJson()).lines ?? [];
     List<Line>? disableSlopeLines = await disableSlope(lines);
-    Object o2 = Object(lines: disableSlopeLines);
-    afterLines = Object.fromJson(o2.toJson()).lines ?? [];
+    // Object o2 = Object(lines: disableSlopeLines);
+    // afterLines = Object.fromJson(o2.toJson()).lines ?? [];
     List<Map<String, dynamic>> finalResult = await extractPassengersData(disableSlopeLines ?? [], inputNames);
     return finalResult;
   }
@@ -181,19 +182,13 @@ class OCRController {
       //     }
       //   }
       // }
-      List<int> lengths = [];
+      int i = 0;
       for (var e in lines!) {
-        if (!lengths.contains(e.text!.length)) {
-          lengths.add(e.text!.length);
+        if (i < (e.text?.length ?? 0)) {
+          i = e.text!.length;
         }
       }
-      lengths.sort((a, b) => a.compareTo(b));
-      int i = lengths.length ~/ 2;
-      if (lengths.isEmpty) {
-        averageLineLength = 0;
-      } else {
-        averageLineLength = lengths[(i > 5 ? i - 1 : i)];
-      }
+      averageLineLength = (i < 12) ? (i ~/ 2) : ((i * 5) ~/ 12);
       return lines;
     }
   }
@@ -839,25 +834,16 @@ class OCRController {
       int maxNameCount = 0;
       int maxListCount = 0;
       List<Line> maxList = [];
-      // sorting method!
+
+      ///sorting method!
       sortedResult = '';
-      sortedResultYAxis = '';
-      sortedResultXAxis = '';
-      sortedResultSlope = '';
       waitComplete = false;
       List<Map<String, dynamic>> passengers = <Map<String, dynamic>>[];
       for (int k = 0; k < sortedLines.length; k++) {
         List<Line> lineList = sortedLines[k];
-        if (k == sortedLines.length - 1 && sortedLines.length > 1) {
-          Line line = nameLines[k].first;
-          lineList.removeWhere((e) => e.cornerList![0].x > line.cornerList![3].x);
-        }
-        sortedLines[k] = await exclusiveLineSort([...lineList]);
-        sortedLines[k].removeWhere((e) => nameLines[k].contains(e));
+        sortedLines[k] = await exclusiveLineSortFaster([...lineList], removeLines: nameLines[k]);
         lineList = sortedLines[k];
-        lineList.removeWhere((e) => e.cornerList![0].x > nameLines[k].first.cornerList![3].x);
-
-        ///these codes are to set maxNameCount and maxListCount
+        //these codes are to set maxNameCount and maxListCount
         int i1 = nameLines[k].length;
         if (i1 > maxNameCount) maxNameCount = i1;
         for (Line l in lineList) {
@@ -1021,21 +1007,34 @@ class OCRController {
       // print("******------******");
       subLines.sort((a, b) => b.cornerList![0].y.compareTo(a.cornerList![0].y));
       sortedResult = sortedResult + subLines.join(" ") + " => ";
-      sortedResultYAxis = sortedResultYAxis +
-          subLines.map((e) => "(${e.cornerList![0].y.toStringAsFixed(2)})${e.text}").toList().join(" ") +
-          " => ";
-      sortedResultXAxis = sortedResultXAxis +
-          subLines.map((e) => "(${e.cornerList![0].x.toStringAsFixed(2)})${e.text}").toList().join(" ") +
-          " => ";
-      sortedResultSlope = sortedResultSlope +
-          subLines.map((e) => "(${slopeOfLine(e).toStringAsFixed(2)})${e.text}").toList().join(" ") +
-          " => ";
+      // sortedResultYAxis = sortedResultYAxis +
+      //     subLines.map((e) => "(${e.cornerList![0].y.toStringAsFixed(2)})${e.text}").toList().join(" ") +
+      //     " => ";
+      // sortedResultXAxis = sortedResultXAxis +
+      //     subLines.map((e) => "(${e.cornerList![0].x.toStringAsFixed(2)})${e.text}").toList().join(" ") +
+      //     " => ";
+      // sortedResultSlope = sortedResultSlope +
+      //     subLines.map((e) => "(${slopeOfLine(e).toStringAsFixed(2)})${e.text}").toList().join(" ") +
+      //     " => ";
       resultLines = resultLines + subLines;
     }
     sortedResult = sortedResult + "\n\n";
-    sortedResultYAxis = sortedResultYAxis + "\n\n";
-    sortedResultXAxis = sortedResultXAxis + "\n\n";
-    sortedResultSlope = sortedResultSlope + "\n\n";
+    // sortedResultYAxis = sortedResultYAxis + "\n\n";
+    // sortedResultXAxis = sortedResultXAxis + "\n\n";
+    // sortedResultSlope = sortedResultSlope + "\n\n";
+    return resultLines;
+  }
+
+  ///Algorithm set to handle a special sort
+  Future<List<Line>> exclusiveLineSortFaster(List<Line> lineList, {List<Line> removeLines = const []}) async {
+    List<Line> resultLines = [];
+    Line line = leastXFinder(lineList);
+    for (int i = 0; i < lineList.length; i++) {
+      if (lineList[i].cornerList![0].x < line.cornerList![2].x && !removeLines.contains(lineList[i])) {
+        resultLines.add(lineList[i]);
+      }
+    }
+    resultLines.sort((a, b) => b.cornerList![0].y.compareTo(a.cornerList![0].y));
     return resultLines;
   }
 
