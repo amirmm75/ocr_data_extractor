@@ -107,8 +107,11 @@ class _MyTestPageState extends State<MyTestPage> {
     String? path =
         await Navigator.of(context).push(MaterialPageRoute(builder: (context) => const _TakePicture()));
     if (path?.isNotEmpty ?? false) {
+      // final result = await OCRKitController().processImageFromPathWithoutView(path ?? '');
+      // Map<String, dynamic> ddd = jsonDecode(result);
+      // print(ddd);
       List<Map<String, dynamic>> passengers =
-          await OCRController().getPassengerList(path!, StaticLists.names);
+          await OCRController().getPassengerList(path!, StaticLists.names2);
       List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
       results = [
         OCRController().googleText,
@@ -117,7 +120,7 @@ class _MyTestPageState extends State<MyTestPage> {
         // OCRController().sortedResultYAxis,
         // OCRController().sortedResultXAxis,
         // OCRController().sortedResultSlope,
-        data.join("\n"),
+        data.join("\n\n"),
       ];
     }
     beforeLines = OCRController().beforeLines;

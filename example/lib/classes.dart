@@ -43,6 +43,6 @@ class BackUpOCRPassenger {
 
   @override
   String toString() {
-    return "$name--Seat:$seat--Seq:${seq.toString()}--Bag:$bag";
+    return "$name--Seat:$seat--Seq:${seq.toString()}";
   }
 }

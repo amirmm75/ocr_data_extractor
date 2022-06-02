@@ -43,7 +43,9 @@ class _LiveScanState extends State<LiveScan> {
     // Stopwatch stopwatch = Stopwatch()..start();
     // stopwatch.stop();
     // print('Time: ${stopwatch.elapsed}');
+    orientation ??= 3;
     Map<String, dynamic> input = {"text": barcode, "orientation": orientation, "values": values};
+    print(input);
     print('+');
     ocrInputs.add(input);
     if (!loading) {

@@ -862,6 +862,7 @@ class OCRController {
         if (k == (sortedLines.length - 1)) waitComplete = true;
       }
       await waitWhile(() => waitComplete);
+      // sortedResult = sortedLines.join("\n\n");
 
       ///we will add temp Line to empty spaces of the table!
       ///then we recognize the type of every column.
@@ -921,10 +922,24 @@ class OCRController {
         String bag = bagIndex >= 0
             ? lineList[maxNameCount + bagIndex].text?.trim().toUpperCase().replaceAll("O", "0") ?? ''
             : '';
-        if (!isPassengerSeat(seat)) {
+        if (seat.isNotEmpty && !isPassengerSeat(seat)) {
           seat = seat.toLowerCase().replaceAll(" ", "");
           if (seat.length > 2 && isAlpha(seat.substring(seat.length - 2, seat.length))) {
             seat = seat.substring(0, seat.length - 1);
+          }
+          if (seat.length > 3) {
+            seat = seat.substring(seat.length - 3);
+          }
+          String lastS = seat.substring(seat.length - 1);
+          if (!isAlpha(lastS)) {
+            lastS = lastS
+                .replaceAll('8', 'b')
+                .replaceAll("0", "o")
+                .replaceAll('2', 'z')
+                .replaceAll("9", "g")
+                .replaceAll(")", "j")
+                .replaceAll("]", "j");
+            seat = seat.substring(0, seat.length - 1) + lastS;
           }
         }
         if (!isPassengerSequence(seq)) {
