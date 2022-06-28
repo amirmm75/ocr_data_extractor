@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:camera_kit_ext/CameraKitExtController.dart';
 import 'package:camera_kit_ext/CameraKitExtView.dart';
 import 'package:example/consts.dart';
@@ -9,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ocr_data_extractor/classes.dart';
 import 'package:ocr_data_extractor/ocr_data_extractor.dart';
+import 'package:ocrkit/OCRKitController.dart';
 import 'classes.dart';
 
 void main() {
@@ -85,8 +87,10 @@ class _MyTestPageState extends State<MyTestPage> {
   Future<void> _getPassengers() async {
     setState(() => loading = true);
     final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+    final result = await OCRKitController().processImageFromPathWithoutView(pickedFile?.path ?? '');
+    Map<String, dynamic> ddd = jsonDecode(result);
     List<Map<String, dynamic>> passengers =
-        await OCRController().getPassengerList(pickedFile!.path, StaticLists.names);
+        await OCRController().getPassengerListByOCRData(ddd, StaticLists.names);
     List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
     results = [
       OCRController().googleText,
@@ -107,11 +111,10 @@ class _MyTestPageState extends State<MyTestPage> {
     String? path =
         await Navigator.of(context).push(MaterialPageRoute(builder: (context) => const _TakePicture()));
     if (path?.isNotEmpty ?? false) {
-      // final result = await OCRKitController().processImageFromPathWithoutView(path ?? '');
-      // Map<String, dynamic> ddd = jsonDecode(result);
-      // print(ddd);
+      final result = await OCRKitController().processImageFromPathWithoutView(path ?? '');
+      Map<String, dynamic> ddd = jsonDecode(result);
       List<Map<String, dynamic>> passengers =
-          await OCRController().getPassengerList(path!, StaticLists.names2);
+          await OCRController().getPassengerListByOCRData(ddd, StaticLists.names2);
       List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
       results = [
         OCRController().googleText,

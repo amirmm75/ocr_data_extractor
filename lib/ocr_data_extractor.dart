@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'package:ocrkit/OCRKitController.dart';
 import 'package:string_similarity/string_similarity.dart';
 import 'package:string_validator/string_validator.dart';
 import 'classes.dart';
@@ -13,7 +12,6 @@ class OCRController {
 
   factory OCRController() => _instance;
 
-  final OCRKitController occ = OCRKitController();
   String googleText = '';
   String sortedResult = '';
 
@@ -42,10 +40,8 @@ class OCRController {
   ///we use remove from top to removes extra words! example: " seat ", don't forget the space!
   ///Strictness = 0 : medium & Strictness = 1 : hard & alternative hard = 2
   Future<List<Map<String, dynamic>>> getNamesList(
-      String path, List<String> inputNames, int strictness) async {
-    final result = await occ.processImageFromPathWithoutView(path);
-    if (result.toString().isEmpty) return [];
-    Map<String, dynamic> data = jsonDecode(result);
+      Map<String, dynamic> data, List<String> inputNames, int strictness) async {
+    if (data.isEmpty) return [];
     List<Line>? lines = await initialize(data,
         removeFromTopWords: [" seat ", " type ", " name "], removeFromTopWords2: [" date:", " gate:"]);
     List<Line>? lines2 = [...lines!];
@@ -56,35 +52,11 @@ class OCRController {
 
   ///this function extracts all numbers of an image which have 6 or more digits
   ///removes time and date
-  Future<List<String>> getNumberList(String path) async {
-    final result = await occ.processImageFromPathWithoutView(path);
-    if (result.toString().isEmpty) return [];
-    Map<String, dynamic> data = jsonDecode(result);
+  Future<List<String>> getNumberList(Map<String, dynamic> data) async {
+    if (data.isEmpty) return [];
     List<Line>? lines = await initialize(data);
     List<String> finalResult = await findFlightTags(lines);
     return finalResult;
-  }
-
-  ///this function extracts list of data of passengers of a brs flight table.
-  Future<List<Map<String, dynamic>>> getPassengerList(String path, List<String> inputNames) async {
-    try {
-      final result = await occ.processImageFromPathWithoutView(path);
-      if (result.toString().isEmpty) return [];
-      Map<String, dynamic> data = jsonDecode(result);
-      List<Line>? lines = await initialize(data);
-      Object o1 = Object(lines: lines);
-      beforeLines = Object.fromJson(o1.toJson()).lines ?? [];
-      List<Line>? disableSlopeLines = await disableSlope(lines);
-      Object o2 = Object(lines: disableSlopeLines);
-      afterLines = Object.fromJson(o2.toJson()).lines ?? [];
-      List<Map<String, dynamic>> finalResult =
-          await extractPassengersData(disableSlopeLines ?? [], inputNames);
-      return finalResult;
-    } catch (e, stackTrace) {
-      print("getPassengerList: $e");
-      print("StackTrace: $stackTrace");
-      return [];
-    }
   }
 
   ///this function extracts list of data of passengers of a brs flight table.

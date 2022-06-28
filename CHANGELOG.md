@@ -1,3 +1,7 @@
+## 0.0.27-dev
+
+* Removed OCRKit from dependencies.
+
 ## 0.0.26
 
 * Minor improvement for extracting passengers.

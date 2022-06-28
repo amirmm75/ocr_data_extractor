@@ -67,7 +67,8 @@ class _LiveScanState extends State<LiveScan> {
     OCRController()
         .getPassengerListByOCRData(input, StaticLists.names2)
         .then((List<Map<String, dynamic>> passengers) {
-      List<BackUpOCRPassenger> bup = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+      List<BackUpOCRPassenger> bup =
+          passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
       List<BackUpOCRPassenger> pl = [];
       for (var element in bup) {
         List<BackUpOCRPassenger> matchPaxes = pPaxes
@@ -103,7 +104,8 @@ class _LiveScanState extends State<LiveScan> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Scanner (${backedUpPaxes.length})"), actions: [
+      appBar:
+          AppBar(title: Text("Scanner (${backedUpPaxes.length})"), actions: [
         IconButton(
             onPressed: () {
               if (isPaused) {
@@ -117,7 +119,9 @@ class _LiveScanState extends State<LiveScan> {
             icon: Icon(isPaused ? Icons.play_arrow : Icons.pause)),
         IconButton(
             onPressed: () {
-              Get.dialog(ConfirmFoundPaxesDialog(foundPaxes: [...backedUpPaxes])).then((value) {
+              Get.dialog(
+                      ConfirmFoundPaxesDialog(foundPaxes: [...backedUpPaxes]))
+                  .then((value) {
                 if (value != null && value is List<BackUpOCRPassenger>) {
                   backedUpPaxes = value;
                   setState(() {});
@@ -131,7 +135,8 @@ class _LiveScanState extends State<LiveScan> {
         child: OCRKitView(
             isTakePictureMode: false,
             isScanningText: true,
-            onTextRead: (barcode, values, path, orientation) => onTextRead(barcode, values, orientation),
+            onTextRead: (barcode, values, path, orientation) =>
+                onTextRead(barcode, values, orientation),
             ocrKitController: oc,
             onPermissionDenied: () {}),
       ),
@@ -142,7 +147,8 @@ class _LiveScanState extends State<LiveScan> {
 class ConfirmFoundPaxesDialog extends StatefulWidget {
   final List<BackUpOCRPassenger> foundPaxes;
 
-  const ConfirmFoundPaxesDialog({Key? key, required this.foundPaxes}) : super(key: key);
+  const ConfirmFoundPaxesDialog({Key? key, required this.foundPaxes})
+      : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -197,7 +203,8 @@ class _ConfirmFoundPaxesDialogState extends State<ConfirmFoundPaxesDialog> {
                               });
                             },
                             seatError: tmpFoundPaxes
-                                    .where((element) => element.seat == tmpFoundPaxes[i].seat)
+                                    .where((element) =>
+                                        element.seat == tmpFoundPaxes[i].seat)
                                     .length >
                                 1,
                           ))),
@@ -207,7 +214,9 @@ class _ConfirmFoundPaxesDialogState extends State<ConfirmFoundPaxesDialog> {
                   Expanded(
                     child: RaisedButton(
                       color: Colors.grey,
-                      child: const Center(child: Text("Cancel", style: TextStyle(color: Colors.white))),
+                      child: const Center(
+                          child: Text("Cancel",
+                              style: TextStyle(color: Colors.white))),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -215,7 +224,9 @@ class _ConfirmFoundPaxesDialogState extends State<ConfirmFoundPaxesDialog> {
                   Expanded(
                     child: RaisedButton(
                       color: Colors.green,
-                      child: const Center(child: Text("Confirm", style: TextStyle(color: Colors.white))),
+                      child: const Center(
+                          child: Text("Confirm",
+                              style: TextStyle(color: Colors.white))),
                       onPressed: () => Navigator.pop(context, tmpFoundPaxes),
                     ),
                   ),
@@ -233,29 +244,40 @@ class FoundPaxWidget extends StatelessWidget {
   final Function onDelete;
   final bool seatError;
 
-  const FoundPaxWidget({Key? key, required this.p, required this.onDelete, required this.seatError})
+  const FoundPaxWidget(
+      {Key? key,
+      required this.p,
+      required this.onDelete,
+      required this.seatError})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(width: 1, color: Colors.grey))),
+      decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(width: 1, color: Colors.grey))),
       child: Row(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Text(p.seq.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(p.seq.toString(),
+                style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           Expanded(
             child: Text(p.name,
-                style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis),
           ),
           Text(
             p.seat,
-            style: TextStyle(fontWeight: FontWeight.bold, color: seatError ? Colors.red : Colors.black),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: seatError ? Colors.red : Colors.black),
           ),
           const SizedBox(width: 8),
-          IconButton(onPressed: () => onDelete(), icon: const Icon(Icons.remove_circle, color: Colors.red))
+          IconButton(
+              onPressed: () => onDelete(),
+              icon: const Icon(Icons.remove_circle, color: Colors.red))
         ],
       ),
     );
