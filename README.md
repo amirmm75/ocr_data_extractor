@@ -15,8 +15,9 @@ and the Flutter guide for
 
 ## Features
 
-Image texts extracted and processed to return the special data wanted.
-Just pass the image path to the chosen function.
+This package uses artemis_camera_kit library to gain OCR data and process its information.
+Just pass the OcrData to the chosen function.
+You can also use this package's useful functions and the special sort.
 
 ## Getting started
 
@@ -24,12 +25,15 @@ add the following code to your podfile
 
 > platform :ios, '10.0'
 
+add *artemis_camera_kit* package to pubspec.yaml file.
+
 ## Usage
 
 The code below extracts all numbers of an image which have 6 or more digits and removes time and date.
 
 ```dart
-List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
+OcrData? ocrData = await ArtemisCameraKitController().processImageFromPath(imagePath ?? '');
+List<String> numbers = await OCRController().getNumberList(ocrData!);
 ```
 
 
@@ -39,7 +43,8 @@ Gets an int to set the strictness as the third input.
 Strictness can be medium(0), hard(1) and alternative hard(2). the first is more accurate and second one is more sensitive.
 
 ```dart
-dynamic passengers = await OCRController().getNamesList(pickedFile.path, names, 0);
+OcrData? ocrData = await ArtemisCameraKitController().processImageFromPath(imagePath ?? '');
+dynamic passengers = await OCRController().getNamesList(ocrData!, names, 0);
 ```
 
 ## Additional information

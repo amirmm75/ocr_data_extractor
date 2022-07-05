@@ -1,21 +1,22 @@
 PODS:
-  - camera_kit_ext (0.0.1):
+  - artemis_camera_kit (0.0.1):
     - Flutter
     - GoogleMLKit/BarcodeScanning
+    - GoogleMLKit/TextRecognition
     - MTBBarcodeScanner
   - Flutter (1.0.0)
   - GoogleDataTransport (9.1.4):
     - GoogleUtilities/Environment (~> 7.7)
     - nanopb (< 2.30910.0, >= 2.30908.0)
     - PromisesObjC (< 3.0, >= 1.2)
-  - GoogleMLKit/BarcodeScanning (2.5.0):
+  - GoogleMLKit/BarcodeScanning (3.0.0):
     - GoogleMLKit/MLKitCore
-    - MLKitBarcodeScanning (~> 1.6.0)
-  - GoogleMLKit/MLKitCore (2.5.0):
-    - MLKitCommon (~> 5.0.0)
-  - GoogleMLKit/TextRecognition (2.5.0):
+    - MLKitBarcodeScanning (~> 2.0.0)
+  - GoogleMLKit/MLKitCore (3.0.0):
+    - MLKitCommon (~> 6.0.0)
+  - GoogleMLKit/TextRecognition (3.0.0):
     - GoogleMLKit/MLKitCore
-    - MLKitTextRecognition (~> 1.4.0-beta3)
+    - MLKitTextRecognition (~> 1.4.0-beta4)
   - GoogleToolboxForMac/DebugUtils (2.3.2):
     - GoogleToolboxForMac/Defines (= 2.3.2)
   - GoogleToolboxForMac/Defines (2.3.2)
@@ -40,10 +41,10 @@ PODS:
   - image_picker (0.0.1):
     - Flutter
   - MLImage (1.0.0-beta2)
-  - MLKitBarcodeScanning (1.6.0):
-    - MLKitCommon (~> 5.0)
-    - MLKitVision (~> 3.0)
-  - MLKitCommon (5.0.0):
+  - MLKitBarcodeScanning (2.0.0):
+    - MLKitCommon (~> 6.0)
+    - MLKitVision (~> 4.0)
+  - MLKitCommon (6.0.0):
     - GoogleDataTransport (~> 9.0)
     - GoogleToolboxForMac/Logger (~> 2.1)
     - "GoogleToolboxForMac/NSData+zlib (~> 2.1)"
@@ -52,19 +53,19 @@ PODS:
     - GoogleUtilitiesComponents (~> 1.0)
     - GTMSessionFetcher/Core (~> 1.1)
     - Protobuf (~> 3.12)
-  - MLKitTextRecognition (1.4.0-beta3):
-    - MLKitCommon (~> 5.0)
-    - MLKitTextRecognitionCommon (= 1.0.0-beta3)
-    - MLKitVision (~> 3.0)
-  - MLKitTextRecognitionCommon (1.0.0-beta3):
-    - MLKitCommon (~> 5.0)
-    - MLKitVision (~> 3.0)
-  - MLKitVision (3.0.0):
+  - MLKitTextRecognition (1.4.0-beta4):
+    - MLKitCommon (~> 6.0)
+    - MLKitTextRecognitionCommon (= 1.0.0-beta4)
+    - MLKitVision (~> 4.0)
+  - MLKitTextRecognitionCommon (1.0.0-beta4):
+    - MLKitCommon (~> 6.0)
+    - MLKitVision (~> 4.0)
+  - MLKitVision (4.0.0):
     - GoogleToolboxForMac/Logger (~> 2.1)
     - "GoogleToolboxForMac/NSData+zlib (~> 2.1)"
     - GTMSessionFetcher/Core (~> 1.1)
     - MLImage (= 1.0.0-beta2)
-    - MLKitCommon (~> 5.0)
+    - MLKitCommon (~> 6.0)
     - Protobuf (~> 3.12)
   - MTBBarcodeScanner (5.0.11)
   - nanopb (2.30909.0):
@@ -72,17 +73,13 @@ PODS:
     - nanopb/encode (= 2.30909.0)
   - nanopb/decode (2.30909.0)
   - nanopb/encode (2.30909.0)
-  - ocrkit (0.0.1):
-    - Flutter
-    - GoogleMLKit/TextRecognition
   - PromisesObjC (2.1.0)
   - Protobuf (3.20.1)
 
 DEPENDENCIES:
-  - camera_kit_ext (from `.symlinks/plugins/camera_kit_ext/ios`)
+  - artemis_camera_kit (from `.symlinks/plugins/artemis_camera_kit/ios`)
   - Flutter (from `Flutter`)
   - image_picker (from `.symlinks/plugins/image_picker/ios`)
-  - ocrkit (from `.symlinks/plugins/ocrkit/ios`)
 
 SPEC REPOS:
   trunk:
@@ -104,34 +101,31 @@ SPEC REPOS:
     - Protobuf
 
 EXTERNAL SOURCES:
-  camera_kit_ext:
-    :path: ".symlinks/plugins/camera_kit_ext/ios"
+  artemis_camera_kit:
+    :path: ".symlinks/plugins/artemis_camera_kit/ios"
   Flutter:
     :path: Flutter
   image_picker:
     :path: ".symlinks/plugins/image_picker/ios"
-  ocrkit:
-    :path: ".symlinks/plugins/ocrkit/ios"
 
 SPEC CHECKSUMS:
-  camera_kit_ext: bc38d5e2f88020ac9d7e61fe518977db916d5a58
+  artemis_camera_kit: fee626d7080bdce23dabf135f721acdf534b825e
   Flutter: 50d75fe2f02b26cc09d224853bb45737f8b3214a
   GoogleDataTransport: 5fffe35792f8b96ec8d6775f5eccd83c998d5a3b
-  GoogleMLKit: 0d7f5aa2f8a2f2ea9d849a05abdbe80974b0ec83
+  GoogleMLKit: 69ae034947ca5220c842a3096d574765c9b6b8b8
   GoogleToolboxForMac: 8bef7c7c5cf7291c687cf5354f39f9db6399ad34
   GoogleUtilities: e0913149f6b0625b553d70dae12b49fc62914fd1
   GoogleUtilitiesComponents: 679b2c881db3b615a2777504623df6122dd20afe
   GTMSessionFetcher: 5595ec75acf5be50814f81e9189490412bad82ba
   image_picker: 50e7c7ff960e5f58faa4d1f4af84a771c671bc4a
   MLImage: a454f9f8ecfd537783a12f9488f5be1a68820829
-  MLKitBarcodeScanning: 867463093fe27a31260898e239d5d8305be29b28
-  MLKitCommon: 3bc17c6f7d25ce3660f030350b46ae7ec9ebca6e
-  MLKitTextRecognition: 8b0e0023a4babc66ca83d8b82864e57931164445
-  MLKitTextRecognitionCommon: 3e84602c928fe2b775fae81376f2136324cbd763
-  MLKitVision: e87dc3f2e456a6ab32361ebd985e078dd2746143
+  MLKitBarcodeScanning: 05aaf6edc24417fa195a4e5d5dcb11550e80fb92
+  MLKitCommon: 534d2b24c1f8676db247bd7ee5733eca1b52968b
+  MLKitTextRecognition: d106486fe8e835db45f78e7a58beee584292b6f5
+  MLKitTextRecognitionCommon: 2b6c596279febd4810e289ed4d9a9c6993fad64a
+  MLKitVision: 5e393f4d8a28be57b6384a3665f5f041deff9c2e
   MTBBarcodeScanner: f453b33c4b7dfe545d8c6484ed744d55671788cb
   nanopb: b552cce312b6c8484180ef47159bc0f65a1f0431
-  ocrkit: 7eac4941edd8b87cba7122cd4cf8ce0a9d7d4525
   PromisesObjC: 99b6f43f9e1044bd87a95a60beff28c2c44ddb72
   Protobuf: b60ec2f51ad74765f44d0c09d2e0579d7de21745
 

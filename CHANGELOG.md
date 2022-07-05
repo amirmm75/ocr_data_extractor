@@ -1,3 +1,7 @@
+## 0.0.28-dev
+
+* Added compatibility with artemis_camera_kit library.
+
 ## 0.0.27-dev
 
 * Removed OCRKit from dependencies.

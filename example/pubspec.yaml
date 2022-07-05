@@ -36,9 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   image_picker: ^0.7.4
   get: ^4.1.4
-  #  camerakit: ^0.0.78-dev1
-  ocrkit: ^0.0.29
-  camera_kit_ext: ^0.0.15
+  artemis_camera_kit: ^0.0.2
   ocr_data_extractor:
     path: ../
 

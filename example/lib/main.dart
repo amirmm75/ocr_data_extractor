@@ -1,6 +1,6 @@
-import 'dart:convert';
-import 'package:camera_kit_ext/CameraKitExtController.dart';
-import 'package:camera_kit_ext/CameraKitExtView.dart';
+import 'package:artemis_camera_kit/artemis_camera_kit_controller.dart';
+import 'package:artemis_camera_kit/artemis_camera_kit_platform_interface.dart';
+import 'package:artemis_camera_kit/artemis_camera_kit_view.dart';
 import 'package:example/consts.dart';
 import 'package:example/line_drawing.dart';
 import 'package:example/live_scan.dart';
@@ -8,9 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:ocr_data_extractor/classes.dart';
 import 'package:ocr_data_extractor/ocr_data_extractor.dart';
-import 'package:ocrkit/OCRKitController.dart';
 import 'classes.dart';
 
 void main() {
@@ -41,56 +39,21 @@ class MyTestPage extends StatefulWidget {
 }
 
 class _MyTestPageState extends State<MyTestPage> {
+  ArtemisCameraKitController ckc = ArtemisCameraKitController();
   final ImagePicker _picker = ImagePicker();
   bool loading = false;
   int selected = 0;
   int type = 0;
   List<String> results = ['', '', '', '', '', ''];
-  List<Line> beforeLines = [];
-  List<Line> afterLines = [];
-
-  // Future<void> _getNumbers() async {
-  //   setState(() => loading = true);
-  //   final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-  //   List<String> numbers = await OCRController().getNumberList(pickedFile!.path);
-  //   setState(() => loading = false);
-  // }
-
-  // Future<void> _getNames() async {
-  //   setState(() => loading = true);
-  //   final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-  //   // print("path is : ${pickedFile!.path}");
-  //   dynamic passengers = await OCRController().getNamesList(pickedFile!.path, StaticLists.names, 2);
-  //   setState(() => loading = false);
-  // }
-
-  // Future<void> _test() async {
-  //   setState(() => loading = true);
-  //   Map<String, dynamic> d = StaticData.data;
-  //   d["orientation"] = "5";
-  //   List<Map<String, dynamic>> passengers =
-  //       await OCRController().getPassengerListByOCRData(d, StaticLists.names);
-  //   List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
-  //   results = [
-  //     OCRController().googleText,
-  //     OCRController().sortedResult,
-  //     OCRController().sortedResultYAxis,
-  //     OCRController().sortedResultXAxis,
-  //     OCRController().sortedResultSlope,
-  //     data.join("\n"),
-  //   ];
-  //   beforeLines = OCRController().beforeLines;
-  //   afterLines = OCRController().afterLines;
-  //   setState(() => loading = false);
-  // }
+  List<OcrLine> beforeLines = [];
+  List<OcrLine> afterLines = [];
 
   Future<void> _getPassengers() async {
     setState(() => loading = true);
     final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
-    final result = await OCRKitController().processImageFromPathWithoutView(pickedFile?.path ?? '');
-    Map<String, dynamic> ddd = jsonDecode(result);
+    OcrData? ocrData = await ckc.processImageFromPath(pickedFile?.path ?? '');
     List<Map<String, dynamic>> passengers =
-        await OCRController().getPassengerListByOCRData(ddd, StaticLists.names);
+        await OCRController().getPassengerListByOCRData(ocrData!, StaticLists.names);
     List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
     results = [
       OCRController().googleText,
@@ -108,13 +71,12 @@ class _MyTestPageState extends State<MyTestPage> {
 
   Future<void> _takePicture() async {
     setState(() => loading = true);
-    String? path =
-        await Navigator.of(context).push(MaterialPageRoute(builder: (context) => const _TakePicture()));
+    String? path = await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (context) => _TakePicture(controller: ckc)));
     if (path?.isNotEmpty ?? false) {
-      final result = await OCRKitController().processImageFromPathWithoutView(path ?? '');
-      Map<String, dynamic> ddd = jsonDecode(result);
+      OcrData? result = await ckc.processImageFromPath(path ?? '');
       List<Map<String, dynamic>> passengers =
-          await OCRController().getPassengerListByOCRData(ddd, StaticLists.names2);
+          await OCRController().getPassengerListByOCRData(result!, StaticLists.names2);
       List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
       results = [
         OCRController().googleText,
@@ -132,8 +94,8 @@ class _MyTestPageState extends State<MyTestPage> {
   }
 
   showLines(bool isRaw) {
-    Object o = Object(lines: isRaw ? beforeLines : afterLines);
-    List<Line> lines = Object.fromJson(o.toJson()).lines ?? [];
+    List<OcrLine> lines = isRaw ? beforeLines : afterLines;
+    lines = OcrData.fromJson(OcrData(lines: lines, text: '').toJson()).lines;
     if (lines.isEmpty) {
       Get.snackbar('\nNothing to show!', "",
           duration: const Duration(seconds: 1), colorText: Colors.red, backgroundColor: Colors.white70);
@@ -290,15 +252,15 @@ class _MyTestPageState extends State<MyTestPage> {
 }
 
 class _TakePicture extends StatefulWidget {
-  const _TakePicture({Key? key}) : super(key: key);
+  final ArtemisCameraKitController controller;
+
+  const _TakePicture({Key? key, required this.controller}) : super(key: key);
 
   @override
   State<_TakePicture> createState() => _TakePictureState();
 }
 
 class _TakePictureState extends State<_TakePicture> {
-  final CameraKitExtController _cameraKitExtController = CameraKitExtController();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -306,18 +268,14 @@ class _TakePictureState extends State<_TakePicture> {
       backgroundColor: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _cameraKitExtController.takePicture().then((value) => Navigator.pop(context, value)),
+        onPressed: () => widget.controller.takePicture().then((value) => Navigator.pop(context, value)),
         child: const Icon(Icons.camera_alt),
       ),
       body: Container(
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
         color: Colors.white,
-        child: CameraKitExtView(
-          cameraKitController: _cameraKitExtController,
-          previewFlashMode: CameraFlashMode.auto,
-          onPermissionDenied: () => Navigator.pop(context),
-        ),
+        child: ArtemisCameraKitView(controller: widget.controller, hasBarcodeReader: false),
       ),
     );
   }
