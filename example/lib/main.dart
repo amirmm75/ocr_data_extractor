@@ -70,27 +70,37 @@ class _MyTestPageState extends State<MyTestPage> {
   }
 
   Future<void> _takePicture() async {
-    setState(() => loading = true);
-    String? path = await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => _TakePicture(controller: ckc)));
-    if (path?.isNotEmpty ?? false) {
-      OcrData? result = await ckc.processImageFromPath(path ?? '');
-      List<Map<String, dynamic>> passengers =
-          await OCRController().getPassengerListByOCRData(result!, StaticLists.names2);
-      List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
-      results = [
-        OCRController().googleText,
-        OCRController().sortedResult,
-        '', '', '',
-        // OCRController().sortedResultYAxis,
-        // OCRController().sortedResultXAxis,
-        // OCRController().sortedResultSlope,
-        data.join("\n\n"),
-      ];
+    try {
+      setState(() => loading = true);
+      String? path = await Navigator.of(context)
+          .push(MaterialPageRoute(builder: (context) => _TakePicture(controller: ckc)));
+      if (path?.isNotEmpty ?? false) {
+        final result = await ckc.processImageFromPath(path ?? '');
+        List<Map<String, dynamic>> passengers =
+            await OCRController().getPassengerListByOCRData(result!, StaticLists.names2);
+        print(passengers.join("\n"));
+        setState(() => loading = false);
+        return;
+        List<BackUpOCRPassenger> data = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
+        results = [
+          result.text,
+          OCRController().sortedResult,
+          '', '', '',
+          // OCRController().sortedResultYAxis,
+          // OCRController().sortedResultXAxis,
+          // OCRController().sortedResultSlope,
+          data.join("\n\n"),
+        ];
+      }
+      beforeLines = OCRController().beforeLines;
+      afterLines = OCRController().afterLines;
+      setState(() => loading = false);
+    } catch (e, s) {
+      results[0] = e.toString() + '\n' + s.toString();
+      results[1] = e.toString() + '\n' + s.toString();
+      print(e.toString() + '\n' + s.toString());
+      setState(() => loading = false);
     }
-    beforeLines = OCRController().beforeLines;
-    afterLines = OCRController().afterLines;
-    setState(() => loading = false);
   }
 
   showLines(bool isRaw) {
@@ -214,17 +224,17 @@ class _MyTestPageState extends State<MyTestPage> {
             },
             child: const Icon(Icons.copy),
           ),
-          // const SizedBox(width: 9),
-          // if (selected == 1)
-          //   ElevatedButton.icon(
-          //       style: ElevatedButton.styleFrom(
-          //           primary: Colors.amberAccent,
-          //           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-          //           fixedSize: const Size(100, 50),
-          //           textStyle: const TextStyle(fontWeight: FontWeight.bold)),
-          //       onPressed: () => setState(() => type = (type + 1) % 4),
-          //       icon: const Icon(Icons.change_circle),
-          //       label: const Text('Type')),
+          const SizedBox(width: 9),
+          if (selected == 1)
+            ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                    primary: Colors.amberAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                    fixedSize: const Size(100, 50),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () => setState(() => type = (type + 1) % 4),
+                icon: const Icon(Icons.change_circle),
+                label: const Text('Type')),
           const Spacer(),
           FloatingActionButton(
             heroTag: "btn 2",

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:artemis_camera_kit/artemis_camera_kit_platform_interface.dart';
+import 'package:ocr_data_extractor/backup_feature.dart';
 import 'package:string_similarity/string_similarity.dart';
 import 'package:string_validator/string_validator.dart';
 import 'classes.dart';
@@ -14,10 +15,6 @@ class OCRController {
 
   String googleText = '';
   String sortedResult = '';
-  // String sortedResultYAxis = '';
-  // String sortedResultXAxis = '';
-  // String sortedResultSlope = '';
-  // int averageLineLength = 0;
   String sortedResultVertical = '';
   String spaceBetweenWords = '';
   String spaceBetweenWordsVertical = '';
@@ -64,7 +61,7 @@ class OCRController {
     // beforeLines = OcrData.fromJson(data.toJson()).lines;
     data.lines = await disableSlope(data.lines);
     // afterLines = OcrData.fromJson(data.toJson()).lines;
-    List<Map<String, dynamic>> finalResult = await extractPassengersData(data.lines, inputNames);
+    List<Map<String, dynamic>> finalResult = await fastExtractPassengersData(data.lines, inputNames);
     return finalResult;
   }
 
@@ -79,8 +76,8 @@ class OCRController {
   Future<List<OcrLine>> initialize(OcrData ocrData) async {
     // googleText = ocrData.text;
     List<OcrLine> lines = [];
-    print("orientation: " + ocrData.orientation.toString());
-    print("data: " + ocrData.toJson().toString());
+    // print("orientation: " + ocrData.orientation.toString());
+    // print("data: " + ocrData.toJson().toString());
     if (ocrData.orientation == 3) {
       lines = ocrData.lines;
     } else if (ocrData.orientation == 0) {
@@ -205,7 +202,7 @@ class OCRController {
 
   ///Checks if words are vertically in the same Column! //So important and useful
   bool isInTheSameColumn(OcrLine l1, OcrLine l2, Strictness strictness) {
-    bool isInSameLines = true;
+    bool isInSameColumn = true;
     //this is more accurate
     if (strictness == Strictness.hard) {
       var i1 = (l1.cornerPoints[0].y + l1.cornerPoints[2].y) / 2;
@@ -214,24 +211,24 @@ class OCRController {
           i1 < l2.cornerPoints[2].y ||
           i2 > l1.cornerPoints[0].y ||
           i2 < l1.cornerPoints[2].y) {
-        isInSameLines = false;
+        isInSameColumn = false;
       }
     } else if (l1.cornerPoints[0].y <
             l2.cornerPoints[2].y || //strictness == Strictness.medium, more sensitive
         l1.cornerPoints[2].y > l2.cornerPoints[0].y) {
       //this is the first and the most important layer of filter
-      isInSameLines = false;
+      isInSameColumn = false;
     }
     if (l1.cornerPoints[0].x < l2.cornerPoints[2].x && l1.cornerPoints[2].x > l2.cornerPoints[0].x) {
-      //if they have any vertical sharing in space they must not be in the same line
-      isInSameLines = false;
+      //if they have any vertical sharing in space they must not be in the same column
+      isInSameColumn = false;
     }
     if ((l1.cornerPoints[2].x - l1.cornerPoints[0].x) > 3 * (l2.cornerPoints[2].x - l2.cornerPoints[0].x) ||
         (l2.cornerPoints[2].x - l2.cornerPoints[0].x) > 3 * (l1.cornerPoints[2].x - l1.cornerPoints[0].x)) {
-      //sometimes a really big font is near a small font which doesn't mean they meant to be in the same line
-      isInSameLines = false;
+      //sometimes a really big font is near a small font which doesn't mean they meant to be in the same column
+      isInSameColumn = false;
     }
-    return isInSameLines;
+    return isInSameColumn;
   }
 
   ///this function returns the slope of a single word
@@ -631,7 +628,7 @@ class OCRController {
     return [b, temp];
   }
 
-  ///new function used to extract flight passenger data using input names for a dcs passenger list.
+  ///function used to extract flight passenger data using input names for a dcs passenger list.
   extractPassengersData(List<OcrLine> lines, List<String> inputNames) async {
     try {
       lines.sort((a, b) => a.cornerPoints[0].x.compareTo(b.cornerPoints[0].x));
@@ -709,7 +706,8 @@ class OCRController {
       List<OcrLine> maxList = [];
 
       ///sorting method!
-      sortedResult = '';
+      // sortedResult = '';
+      sortedResult = sortedLines.map((e) => e.map((e2) => e2.text).join(" ")).join("\n");
       waitComplete = false;
       List<Map<String, dynamic>> passengers = <Map<String, dynamic>>[];
       for (int k = 0; k < sortedLines.length; k++) {
@@ -788,6 +786,8 @@ class OCRController {
           bagCount = seq0;
         }
       }
+
+      //extracting phase!
       for (int i = 0; i < sortedLines.length; i++) {
         List<OcrLine> lineList = sortedLines[i];
         String fullName = lineList.sublist(0, maxNameCount).map((e) => e.text).join(" ").trim();

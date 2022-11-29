@@ -35,8 +35,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   image_picker: ^0.7.4
-  get: ^4.1.4
-  artemis_camera_kit: ^0.0.2
+  get: ^4.6.5
+  artemis_camera_kit: ^0.0.5
   ocr_data_extractor:
     path: ../
 

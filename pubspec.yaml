@@ -12,7 +12,7 @@ dependencies:
     sdk: flutter
   string_similarity: ^2.0.0
   string_validator: ^0.3.0
-  artemis_camera_kit: ^0.0.2
+  artemis_camera_kit: ^0.0.5
 
 dev_dependencies:
   flutter_test:

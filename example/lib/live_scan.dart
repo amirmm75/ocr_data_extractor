@@ -5,6 +5,7 @@ import 'package:example/consts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ocr_data_extractor/ocr_data_extractor.dart';
+import 'package:string_similarity/string_similarity.dart';
 import 'classes.dart';
 
 class LiveScan extends StatefulWidget {
@@ -24,17 +25,19 @@ class _LiveScanState extends State<LiveScan> {
 
   @override
   void initState() {
-    for (String s in StaticLists.names2) {
+    for (String s in StaticLists.names) {
+      // deleteThis = true;
       String name = s.trim();
       pPaxes.add(BackUpOCRPassenger(
-          name: name,
-          fName: name.split(" ").first,
-          lName: name.split(" ").last,
-          seat: '',
-          seq: 0,
-          bag: '',
-          count: '',
-          weight: ''));
+        name: name,
+        // fName: name.split(" ").first,
+        // lName: name.split(" ").last,
+        seat: '',
+        seq: 0,
+        // bag: '',
+        // count: '',
+        // weight: '',
+      ));
     }
     super.initState();
   }
@@ -45,7 +48,13 @@ class _LiveScanState extends State<LiveScan> {
     // stopwatch.stop();
     // print('Time: ${stopwatch.elapsed}');
     print('+');
-    print("orientation: " + ocrData.orientation.toString());
+    // int number = 0;
+    // for (var line in ocrData.lines) {
+    //   if (line.cornerPoints.any((c) => ((c.x.isBlank ?? true) || (c.y.isBlank ?? true)))) {
+    //     number++;
+    //   }
+    // }
+    // print("NUMBER OF NULL: $number");
     ocrInputs.add(ocrData);
     if (!loading) {
       print('start');
@@ -58,30 +67,42 @@ class _LiveScanState extends State<LiveScan> {
     // }
   }
 
+  bool isSeat1BetterThan2(String s1, String s2) {
+    return (OCRController().isPassengerSeat(s1) && !OCRController().isPassengerSeat(s2));
+  }
+
+  bool isSeq1BetterThan2(int i1, int i2) {
+    return (OCRController().isPassengerSequence(i1.toString()) &&
+        !OCRController().isPassengerSequence(i2.toString()));
+  }
+
   processOCR() {
     OcrData input = ocrInputs.first;
-    Stopwatch stopwatch = Stopwatch()..start();
+    // Stopwatch stopwatch = Stopwatch()..start();
     // stopwatch.stop();
-    print('Time1: ${stopwatch.elapsed}');
+    // print('Time1: ${stopwatch.elapsed}');
     OCRController()
-        .getPassengerListByOCRData(input, StaticLists.names2)
+        .getPassengerListByOCRData(input, StaticLists.names)
         .then((List<Map<String, dynamic>> passengers) {
       List<BackUpOCRPassenger> bup = passengers.map((e) => BackUpOCRPassenger.fromJson(e)).toList();
       List<BackUpOCRPassenger> pl = [];
       for (var element in bup) {
-        List<BackUpOCRPassenger> matchPaxes = pPaxes
-            .where((pp) =>
-                pp.name.toLowerCase().contains(element.fName.toLowerCase()) &&
-                pp.name.toLowerCase().contains(element.lName.toLowerCase()) &&
-                element.name.toLowerCase().contains(pp.fName.toLowerCase()) &&
-                element.name.toLowerCase().contains(pp.lName.toLowerCase()))
-            .toList();
-        if (matchPaxes.isNotEmpty) {
-          BackUpOCRPassenger pCopy = matchPaxes.first;
+        final match = element.name.toLowerCase().bestMatch(pPaxes.map((e) => e.name.toLowerCase()).toList());
+        if ((match.bestMatch.rating ?? 0) > 0.75) {
+          BackUpOCRPassenger pCopy = pPaxes[match.bestMatchIndex];
           pCopy.seq = element.seq;
           pCopy.seat = element.seat;
-          pCopy.weight = element.weight;
-          pl.add(pCopy);
+          if (backedUpPaxes.any((bp) => bp.name == pCopy.name)) {
+            int i = backedUpPaxes.indexWhere((bp) => bp.name == pCopy.name);
+            if (isSeat1BetterThan2(pCopy.seat, backedUpPaxes[i].seat)) {
+              backedUpPaxes[i].seat = pCopy.seat;
+            }
+            if (isSeq1BetterThan2(pCopy.seq, backedUpPaxes[i].seq)) {
+              backedUpPaxes[i].seat = pCopy.seat;
+            }
+          } else {
+            pl.add(pCopy);
+          }
         }
       }
       backedUpPaxes = (backedUpPaxes + pl).toSet().toList();
@@ -94,8 +115,8 @@ class _LiveScanState extends State<LiveScan> {
       } else {
         processOCR();
       }
-      stopwatch.stop();
-      print('Time3: ${stopwatch.elapsed}');
+      // stopwatch.stop();
+      // print('Time3: ${stopwatch.elapsed}');
     });
   }
 

@@ -86,8 +86,7 @@ class PassengerList {
   List<OCRPassenger> passengerList;
 
   Map<String, dynamic> toJson() => {
-        "PassengerList":
-            List<dynamic>.from(passengerList.map((x) => x.toJson())),
+        "PassengerList": List<dynamic>.from(passengerList.map((x) => x.toJson())),
       };
 }
 
@@ -96,35 +95,32 @@ class OCRPassenger {
   String seat;
   String seq;
   String bag;
+  String id;
 
-  // String id;
   // String type;
   // String ci;
   // String status;
   // String agent;
 
-  OCRPassenger(
-      {required this.name, this.seat = '', this.seq = '', this.bag = ''});
+  OCRPassenger({required this.name, this.seat = '', this.seq = '', this.bag = '', this.id = ''});
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
-    data['FirstName'] = name.split(" ").first.toTitleCase();
-    data['LastName'] = name.split(" ").last.toTitleCase();
+    data['ID'] = id;
+    // data['FirstName'] = name.split(" ").first.toTitleCase();
+    // data['LastName'] = name.split(" ").last.toTitleCase();
     data['FullName'] = name.toTitleCase();
     data['Seat'] = seat.toUpperCase();
     data['Seq'] = seq;
-    data['Weight'] = bag.isNotEmpty ? bag.split("/")[1] : '';
-    data['Count'] = bag.isNotEmpty ? bag.split("/")[0] : '';
+    // data['Weight'] = bag.isNotEmpty ? bag.split("/")[1] : '';
+    // data['Count'] = bag.isNotEmpty ? bag.split("/")[0] : '';
     return data;
   }
 }
 
 extension StringCasingExtension on String {
-  String toCapitalized() =>
-      length > 0 ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
+  String toCapitalized() => length > 0 ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
 
-  String toTitleCase() => replaceAll(RegExp(' +'), ' ')
-      .split(' ')
-      .map((str) => str.toCapitalized())
-      .join(' ');
+  String toTitleCase() =>
+      replaceAll(RegExp(' +'), ' ').split(' ').map((str) => str.toCapitalized()).join(' ');
 }
